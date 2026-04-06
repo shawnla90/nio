@@ -22,12 +22,12 @@ def setup_default(ctx: typer.Context):
     if ctx.invoked_subcommand is None:
         console.print()
         console.print(Panel(
-            "[bold green]NIO Setup Wizard[/bold green]\n\n"
-            "This will walk you through:\n"
-            "  [green]1.[/green] Mode selection (global vs team)\n"
-            "  [green]2.[/green] Platform connections (Discord, Telegram, WhatsApp...)\n"
-            "  [green]3.[/green] Memory bridge (import Hermes memories)\n"
-            "  [green]4.[/green] Verification\n",
+            "[bold green]NIO Setup[/bold green]\n\n"
+            "This sets up your agent in 4 steps:\n"
+            "  [green]1.[/green] How you want to use NIO (all repos or one project)\n"
+            "  [green]2.[/green] Connect platforms (Discord, WhatsApp, Telegram...)\n"
+            "  [green]3.[/green] Import memory from previous sessions\n"
+            "  [green]4.[/green] Verify everything works\n",
             border_style="green",
         ))
         console.print()
@@ -45,12 +45,12 @@ def setup_mode():
 
     import yaml
 
-    console.print("\n[bold green]Stage 1: Mode Selection[/bold green]\n")
+    console.print("\n[bold green]Step 1: How do you want to use NIO?[/bold green]\n")
 
-    console.print("  [green]global[/green]  NIO as your wizard guide across all repos.")
-    console.print("          Uses ~/.nio/ soul + voice. Access to everything.\n")
-    console.print("  [green]team[/green]    NIO scoped to this project only.")
-    console.print("          Uses .nio/team.toml in the repo. Shared with collaborators.\n")
+    console.print("  [green]global[/green]  Use NIO everywhere. One personality, one voice, all your repos.")
+    console.print("          Best for solo builders using Claude Code.\n")
+    console.print("  [green]team[/green]    Use NIO for this project only. Shared with collaborators.")
+    console.print("          Best when a team needs the same agent personality.\n")
 
     choice = Prompt.ask("  Mode", choices=["global", "team"], default="global")
 
@@ -79,18 +79,18 @@ def setup_mode():
                 path = create_soul_from_content("hermes-migrated", content)
                 console.print(f"  [green]Imported to: {path}[/green]")
 
-        # Set active soul to nio-core if not set
+        # Set defaults
         active_soul = Path.home() / ".nio" / "active" / "soul.txt"
         if not active_soul.exists():
             active_soul.parent.mkdir(parents=True, exist_ok=True)
             active_soul.write_text("nio-core@0.1.0")
-            console.print("  [green]Active soul set to: nio-core@0.1.0[/green]")
+            console.print("  [green]Personality set: nio-core[/green] (direct, builder-first, no fluff)")
 
         active_voice = Path.home() / ".nio" / "active" / "voice.txt"
         if not active_voice.exists():
             active_voice.parent.mkdir(parents=True, exist_ok=True)
             active_voice.write_text("shawn-builder@1.0.0")
-            console.print("  [green]Active voice set to: shawn-builder@1.0.0[/green]")
+            console.print("  [green]Writing style set: shawn-builder[/green] (casual, earned authority, minimal hedging)")
 
     elif choice == "team":
         if Confirm.ask("  Initialize team mode in current directory?", default=True):
@@ -112,7 +112,9 @@ def setup_platforms():
         probe_all,
     )
 
-    console.print("\n[bold green]Stage 2: Platform Connections[/bold green]\n")
+    console.print("\n[bold green]Step 2: Connect your agent to a platform[/bold green]\n")
+    console.print("  Your agent can respond on Discord, Telegram, WhatsApp, Slack, or Signal.")
+    console.print("  Skip this if you only use Claude Code.\n")
 
     probes = probe_all()
 
@@ -183,7 +185,9 @@ def setup_memory():
     """Stage 3: Import Hermes memories into NIO."""
     from pathlib import Path
 
-    console.print("\n[bold green]Stage 3: Memory Bridge[/bold green]\n")
+    console.print("\n[bold green]Step 3: Import existing memory[/bold green]\n")
+    console.print("  NIO can import context from your previous Hermes sessions and Claude Code handoffs.")
+    console.print("  This gives your agent a head start on knowing your work.\n")
 
     hermes_mem = Path.home() / ".hermes" / "memories"
     memory_file = hermes_mem / "MEMORY.md"
@@ -252,7 +256,7 @@ def setup_verify():
     from nio.core.db import check_db
     from nio.core.platform_probe import check_hermes_installed, probe_all
 
-    console.print("\n[bold green]Stage 4: Verification[/bold green]\n")
+    console.print("\n[bold green]Step 4: Verify everything works[/bold green]\n")
 
     checks = []
 

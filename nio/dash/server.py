@@ -30,17 +30,48 @@ async def health():
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    """Now Playing: the home page hero."""
+    """Home page: onboarding wizard for new users, metrics for active users."""
     from nio.core.metrics import get_recent_slop_avg
     from nio.core.soul import get_active_soul
     from nio.core.voice import get_active_voice
 
+    soul = get_active_soul() or "none"
+    voice = get_active_voice() or "none"
+    slop_avg = get_recent_slop_avg() or 0
+
+    # Check session/turn counts
+    session_count = 0
+    turn_count = 0
+    try:
+        from nio.core.db import get_connection
+        conn = get_connection()
+        session_count = conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
+        turn_count = conn.execute("SELECT COUNT(*) FROM turns").fetchone()[0]
+        conn.close()
+    except Exception:
+        pass
+
+    # Check platform connections
+    platforms_connected = 0
+    try:
+        from nio.core.platform_probe import probe_all
+        platforms_connected = sum(1 for p in probe_all() if p["configured"])
+    except Exception:
+        pass
+
+    # Show onboarding if nothing is configured yet
+    setup_needed = (soul == "none" and session_count == 0) or turn_count == 0
+
     return templates.TemplateResponse(
         request=request, name="index.html",
         context={
-            "soul": get_active_soul() or "none",
-            "voice": get_active_voice() or "none",
-            "slop_avg": get_recent_slop_avg() or 0,
+            "soul": soul,
+            "voice": voice,
+            "slop_avg": slop_avg,
+            "setup_needed": setup_needed,
+            "session_count": session_count,
+            "turn_count": turn_count,
+            "platforms_connected": platforms_connected,
         },
     )
 
