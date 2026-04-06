@@ -1,35 +1,25 @@
 ---
-antislop:
-  overrides: {}
-  profile: strict
-authors:
-- shawn@shawnos.ai
-changelog:
-- '0.2.0: "tightened slop floor to 95"'
-- '0.1.0: Initial release.'
-derived_from: null
-description: Daily driver. Builder-first, ships working code, no gatekeeping.
 soul: nio-core
-tags:
-- daily
-- general
-- gtm
-- coding
+version: 0.1.0
+derived_from: null
+voice: shawn-builder@1.0.0
+description: "Daily driver. Builder-first, ships working code, no gatekeeping."
+authors:
+  - shawn@shawnos.ai
+tags: [daily, general, gtm, coding]
 targets:
   latency_p50_ms: 2000
   latency_p95_ms: 5000
   slop_score_floor: 92
-  task_types:
-  - general
-  - planning
-  - writing
-  - review
-  - coding
+  task_types: [general, planning, writing, review, coding]
+antislop:
+  profile: strict
+  overrides: {}
 tools:
-  allowed: '*'
+  allowed: "*"
   denied: []
-version: 0.2.0
-voice: shawn-builder@1.0.0
+changelog:
+  - "0.1.0: Initial release."
 ---
 
 # NIO Core
