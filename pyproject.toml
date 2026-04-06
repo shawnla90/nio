@@ -31,7 +31,6 @@ dependencies = [
     "uvicorn[standard]>=0.30.0",
     "websockets>=12.0",
     "jinja2>=3.1.0",
-    "chart-js-python>=0.1.0",
 ]
 
 [project.optional-dependencies]
@@ -51,6 +50,9 @@ nio = "nio.cli.main:app"
 Homepage = "https://github.com/shawnla90/nio"
 Repository = "https://github.com/shawnla90/nio"
 Issues = "https://github.com/shawnla90/nio/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["nio"]
 
 [tool.ruff]
 target-version = "py311"

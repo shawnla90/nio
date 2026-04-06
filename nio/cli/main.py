@@ -31,21 +31,18 @@ def status():
     from nio.core.soul import get_active_soul
     from nio.core.voice import get_active_voice
     from nio.core.metrics import get_recent_slop_avg
-    from rich.console import Console
-    from rich.table import Table
+    from nio.cli.boot import boot_splash, boot_status
 
-    console = Console()
-    soul = get_active_soul()
-    voice = get_active_voice()
+    soul = get_active_soul() or "none"
+    voice = get_active_voice() or "none"
     slop_avg = get_recent_slop_avg()
+    slop_str = f"{slop_avg:.1f}/100" if slop_avg is not None else "no data"
 
-    table = Table(title="NIO Status", show_header=False, border_style="dim")
-    table.add_column("Key", style="bold")
-    table.add_column("Value")
-    table.add_row("Soul", soul or "none")
-    table.add_row("Voice", voice or "none")
-    table.add_row("Slop avg (24h)", f"{slop_avg:.1f}/100" if slop_avg is not None else "no data")
-    console.print(table)
+    hermes = "hooked" if _check_hermes_hook() else "not found"
+    dash = ":4242" if _check_dash() else "stopped"
+
+    boot_splash(animate=True)
+    boot_status(soul=soul, voice=voice, slop=slop_str, dash=dash, hermes=hermes)
 
 
 @app.command()
