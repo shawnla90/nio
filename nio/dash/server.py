@@ -86,16 +86,31 @@ async def api_recent_metrics(window: str = "7d"):
 
 
 @app.get("/api/turns/recent")
-async def api_recent_turns(limit: int = 10):
-    """Return the most recent turns for the live feed."""
+async def api_recent_turns(limit: int = 10, platform: str = ""):
+    """Return the most recent turns for the live feed.
+
+    Optional ?platform= filter (e.g., 'claude_code' or 'discord').
+    """
     from nio.core.db import get_connection
 
     conn = get_connection()
-    rows = conn.execute(
-        "SELECT turn_id, session_id, slop_score, latency_ms, slop_violations, created_at "
-        "FROM turns ORDER BY created_at DESC LIMIT ?",
-        (limit,),
-    ).fetchall()
+
+    if platform:
+        rows = conn.execute(
+            "SELECT t.turn_id, t.session_id, t.slop_score, t.latency_ms, "
+            "t.slop_violations, t.created_at, s.platform "
+            "FROM turns t JOIN sessions s ON t.session_id = s.session_id "
+            "WHERE s.platform = ? ORDER BY t.created_at DESC LIMIT ?",
+            (platform, limit),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT t.turn_id, t.session_id, t.slop_score, t.latency_ms, "
+            "t.slop_violations, t.created_at, s.platform "
+            "FROM turns t LEFT JOIN sessions s ON t.session_id = s.session_id "
+            "ORDER BY t.created_at DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
     conn.close()
 
     import json
@@ -108,6 +123,7 @@ async def api_recent_turns(limit: int = 10):
             "latency_ms": r[3],
             "violations": json.loads(r[4]) if r[4] else [],
             "created_at": r[5],
+            "platform": r[6] or "unknown",
         })
     return JSONResponse(turns)
 
