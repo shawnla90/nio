@@ -1,11 +1,7 @@
 """Tests for the soul loader, inheritance resolver, and versioning."""
 
-import json
-import pytest
-from pathlib import Path
-
 import frontmatter
-
+import pytest
 
 # --- Soul loading ---
 
@@ -145,7 +141,6 @@ def test_set_and_get_active_soul(tmp_path):
     from nio.core import soul as soul_mod
 
     # Use tmp for active dir
-    active_file = tmp_path / "active" / "soul.txt"
     orig_home = soul_mod.NIO_HOME
     soul_mod.NIO_HOME = tmp_path
 
@@ -177,7 +172,7 @@ def test_load_voice_profile():
 
 
 def test_voice_apply_catches_banned_phrase():
-    from nio.core.voice import load_voice, apply
+    from nio.core.voice import apply, load_voice
     voice = load_voice("shawn-builder")
     result = apply(voice, "This tool is a game changer for GTM teams.")
     # Banned phrase is detected and removed from cleaned text
@@ -187,7 +182,7 @@ def test_voice_apply_catches_banned_phrase():
 
 
 def test_voice_apply_clean_text():
-    from nio.core.voice import load_voice, apply
+    from nio.core.voice import apply, load_voice
     voice = load_voice("shawn-builder")
     result = apply(voice, "I built a scoring model in SQLite. It updates the dashboard every hour.")
     assert result.score == 100.0
@@ -197,8 +192,8 @@ def test_voice_apply_clean_text():
 
 def test_release_soul_bumps_version(tmp_path):
     """Release creates a DB snapshot and bumps the file version."""
-    from nio.core import soul as soul_mod
     from nio.core import db as db_mod
+    from nio.core import soul as soul_mod
     from nio.core.versioning import release_soul
 
     # Use tmp paths to avoid touching real registry/DB

@@ -1,7 +1,6 @@
 """Tests for nio/core/team.py -- team mode operations."""
 
 import sqlite3
-from pathlib import Path
 
 import pytest
 
@@ -99,8 +98,8 @@ def test_parse_toml_simple_comments():
 
 def test_register_team(tmp_db):
     """_register_team writes to team_state table."""
-    from nio.core.team import _register_team
     import nio.core.db as db_mod
+    from nio.core.team import _register_team
 
     _register_team("reg-team", "https://github.com/test/repo", "soul-1", "0.1.0", {"team": {"id": "reg-team"}})
 
@@ -131,6 +130,6 @@ def test_release_team_soul_delegates(monkeypatch):
         return f"{soul_id}@0.1.1"
 
     monkeypatch.setattr("nio.core.versioning.release_soul", mock_release)
-    result = release_team_soul("team-soul", bump="minor", message="test")
+    release_team_soul("team-soul", bump="minor", message="test")
     assert len(calls) == 1
     assert calls[0] == ("team-soul", "minor", "test")

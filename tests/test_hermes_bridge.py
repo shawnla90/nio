@@ -9,11 +9,12 @@ Simulates the full 5-event pipeline and verifies:
 
 import asyncio
 import json
+
 import pytest
 
 from nio.core import db as db_mod
-from nio.core import soul as soul_mod
 from nio.core import metrics as metrics_mod
+from nio.core import soul as soul_mod
 
 
 @pytest.fixture(autouse=True)
@@ -139,7 +140,7 @@ def test_query_metrics():
 
 def test_full_pipeline(tmp_path):
     """Simulate gateway:startup -> session:start -> agent:start -> agent:end."""
-    from nio.hermes_bridge.middleware import handle, _active_sessions
+    from nio.hermes_bridge.middleware import _active_sessions, handle
 
     orig_home = soul_mod.NIO_HOME
     soul_mod.NIO_HOME = tmp_path
@@ -192,7 +193,7 @@ def test_full_pipeline(tmp_path):
 
 def test_pipeline_with_sloppy_output(tmp_path):
     """Verify sloppy agent output gets a low slop score."""
-    from nio.hermes_bridge.middleware import handle, _active_sessions
+    from nio.hermes_bridge.middleware import _active_sessions, handle
 
     orig_home = soul_mod.NIO_HOME
     soul_mod.NIO_HOME = tmp_path

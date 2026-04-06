@@ -1,6 +1,5 @@
 """Tests for nio/core/platform_probe.py -- platform detection."""
 
-from pathlib import Path
 
 import pytest
 
@@ -65,7 +64,7 @@ def test_read_env(hermes_env):
 
 
 def test_write_env_preserves_existing(hermes_env):
-    from nio.core.platform_probe import _write_env, _read_env
+    from nio.core.platform_probe import _read_env, _write_env
 
     _write_env("NEW_KEY", "new_value")
     env = _read_env()

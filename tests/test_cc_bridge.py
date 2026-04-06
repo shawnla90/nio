@@ -1,7 +1,6 @@
 """Tests for Claude Code session bridge."""
 
 import sqlite3
-from pathlib import Path
 
 import pytest
 
@@ -27,8 +26,8 @@ def test_start_cc_session(tmp_db):
 
 
 def test_start_session_creates_row(tmp_db):
-    from nio.claude_code.session_bridge import start_cc_session
     import nio.core.db as db_mod
+    from nio.claude_code.session_bridge import start_cc_session
 
     session_id = start_cc_session()
     conn = db_mod.get_connection()
@@ -42,7 +41,7 @@ def test_start_session_creates_row(tmp_db):
 
 
 def test_record_cc_turn(tmp_db):
-    from nio.claude_code.session_bridge import start_cc_session, record_cc_turn
+    from nio.claude_code.session_bridge import record_cc_turn, start_cc_session
 
     session_id = start_cc_session()
     result = record_cc_turn(session_id, "fix the bug", "I fixed the validation logic.")
@@ -54,7 +53,7 @@ def test_record_cc_turn(tmp_db):
 
 
 def test_record_turn_detects_slop(tmp_db):
-    from nio.claude_code.session_bridge import start_cc_session, record_cc_turn
+    from nio.claude_code.session_bridge import record_cc_turn, start_cc_session
 
     session_id = start_cc_session()
     result = record_cc_turn(
@@ -68,7 +67,7 @@ def test_record_turn_detects_slop(tmp_db):
 
 
 def test_record_multiple_turns(tmp_db):
-    from nio.claude_code.session_bridge import start_cc_session, record_cc_turn
+    from nio.claude_code.session_bridge import record_cc_turn, start_cc_session
 
     session_id = start_cc_session()
     r1 = record_cc_turn(session_id, "first", "first response")
@@ -79,7 +78,7 @@ def test_record_multiple_turns(tmp_db):
 
 
 def test_end_cc_session(tmp_db):
-    from nio.claude_code.session_bridge import start_cc_session, record_cc_turn, end_cc_session
+    from nio.claude_code.session_bridge import end_cc_session, record_cc_turn, start_cc_session
 
     session_id = start_cc_session()
     record_cc_turn(session_id, "fix auth", "Updated token validation.")
@@ -99,7 +98,7 @@ def test_get_cc_status_no_sessions(tmp_db):
 
 
 def test_get_cc_status_active(tmp_db):
-    from nio.claude_code.session_bridge import start_cc_session, get_cc_status
+    from nio.claude_code.session_bridge import get_cc_status, start_cc_session
 
     start_cc_session()
     status = get_cc_status()
@@ -108,7 +107,7 @@ def test_get_cc_status_active(tmp_db):
 
 
 def test_get_cc_status_after_end(tmp_db):
-    from nio.claude_code.session_bridge import start_cc_session, end_cc_session, get_cc_status
+    from nio.claude_code.session_bridge import end_cc_session, get_cc_status, start_cc_session
 
     session_id = start_cc_session()
     end_cc_session(session_id)

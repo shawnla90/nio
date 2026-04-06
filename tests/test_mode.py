@@ -1,8 +1,6 @@
 """Tests for nio/core/mode.py -- mode resolver (global vs team)."""
 
-from pathlib import Path
 
-import pytest
 
 
 def test_global_mode_default(tmp_path, monkeypatch):
@@ -41,7 +39,7 @@ def test_team_mode_in_parent(tmp_path, monkeypatch):
     child.mkdir(parents=True)
     monkeypatch.chdir(child)
 
-    from nio.core.mode import get_active_mode, find_team_toml
+    from nio.core.mode import find_team_toml, get_active_mode
     assert get_active_mode() == "team"
     assert find_team_toml() == nio_dir / "team.toml"
 

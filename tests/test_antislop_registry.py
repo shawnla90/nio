@@ -4,8 +4,7 @@ Regression corpus: known violations and clean text to verify detect() and score(
 match expected behavior across all three tiers.
 """
 
-from nio.core.antislop import detect, score, RULES
-
+from nio.core.antislop import RULES, detect, score
 
 # --- Registry structure ---
 

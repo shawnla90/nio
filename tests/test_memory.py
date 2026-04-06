@@ -1,10 +1,6 @@
 """Tests for nio/core/memory.py -- eternal memory system."""
 
-import os
 import sqlite3
-import tempfile
-from pathlib import Path
-from unittest import mock
 
 import pytest
 
@@ -17,8 +13,6 @@ def tmp_db(tmp_path, monkeypatch):
 
     # Patch get_connection to use tmp db
     import nio.core.db as db_mod
-    original_get_conn = db_mod.get_connection
-
     def patched_get_connection():
         conn = sqlite3.connect(str(db_path))
         conn.execute("PRAGMA journal_mode=WAL")
@@ -113,7 +107,7 @@ def test_import_claude_handoffs(tmp_db, claude_handoffs):
 def test_handoffs_skip_done_files(tmp_db, claude_handoffs):
     from nio.core.memory import import_claude_handoffs
 
-    count = import_claude_handoffs()
+    import_claude_handoffs()
     # Should not import from _done.md file
     import nio.core.db as db_mod
     conn = db_mod.get_connection()

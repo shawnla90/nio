@@ -1,7 +1,6 @@
 """Tests for CLI commands: metrics, team, status, doctor, install, cc."""
 
 import sqlite3
-from pathlib import Path
 
 import pytest
 from typer.testing import CliRunner
