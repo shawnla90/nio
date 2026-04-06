@@ -28,6 +28,7 @@
   <img src="https://img.shields.io/badge/hermes-plugin-4EC373?style=flat-square" alt="Hermes Plugin" />
   <img src="https://img.shields.io/badge/dashboard-localhost:4242-4EC373?style=flat-square" alt="Dashboard" />
   <img src="https://img.shields.io/badge/claude_code-skill+hooks-4EC373?style=flat-square" alt="Claude Code" />
+  <img src="https://img.shields.io/badge/tests-141_passing-4EC373?style=flat-square" alt="Tests" />
 </p>
 
 ---
