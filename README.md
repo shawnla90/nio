@@ -1,50 +1,32 @@
 <p align="center">
-  <img src="docs/screenshots/nio-avatar.png" alt="NIO" width="128" style="image-rendering: pixelated;" />
+  <img src="docs/screenshots/nio-boot-v2.gif" alt="NIO" width="560" />
 </p>
 
-<h1 align="center">NIO</h1>
+<p align="center">
+  <strong>Track, score, and version every response your CLI agent writes.</strong>
+</p>
 
 <p align="center">
-  <strong>voice DNA. semver souls. anti-slop. context engineering for CLI agents.</strong>
+  <em>voice DNA. semver souls. anti-slop.</em>
 </p>
 
 <p align="center">
   <a href="#install">Install</a> &bull;
-  <a href="#what-nio-adds">Features</a> &bull;
-  <a href="#cli-first-no-apis">CLI-First</a> &bull;
+  <a href="#what-nio-does">What It Does</a> &bull;
   <a href="#quick-start">Quick Start</a> &bull;
-  <a href="#architecture">Architecture</a> &bull;
-  <a href="#souls">Souls</a> &bull;
   <a href="#anti-slop">Anti-Slop</a> &bull;
-  <a href="#why-sqlite">Why SQLite</a> &bull;
+  <a href="#souls">Souls</a> &bull;
   <a href="#persistent-memory">Memory</a> &bull;
-  <a href="#team-mode">Teams</a> &bull;
+  <a href="#architecture">Architecture</a> &bull;
   <a href="#license">License</a>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.11+-4EC373?style=flat-square&logo=python&logoColor=white" alt="Python 3.11+" />
   <img src="https://img.shields.io/badge/license-MIT-4EC373?style=flat-square" alt="MIT License" />
-  <img src="https://img.shields.io/badge/hermes-optional_bridge-4EC373?style=flat-square" alt="Hermes Bridge" />
-  <img src="https://img.shields.io/badge/dashboard-localhost:4242-4EC373?style=flat-square" alt="Dashboard" />
   <img src="https://img.shields.io/badge/claude_code-skill+hooks-4EC373?style=flat-square" alt="Claude Code" />
-  <img src="https://img.shields.io/badge/tests-141_passing-4EC373?style=flat-square" alt="Tests" />
+  <img src="https://img.shields.io/badge/dashboard-localhost:4242-4EC373?style=flat-square" alt="Dashboard" />
 </p>
-
----
-
-<p align="center">
-  <img src="docs/screenshots/nio-boot-v2.gif" alt="NIO Boot Sequence" width="480" />
-</p>
-
-<details>
-<summary>Architecture diagram</summary>
-
-<p align="center">
-  <img src="docs/screenshots/nio-hero.svg" alt="NIO Architecture" width="800" />
-</p>
-
-</details>
 
 ---
 
@@ -71,23 +53,15 @@ Walks you through mode selection (global vs team), platform connections (Discord
 
 ## What NIO does
 
-NIO gives your CLI agent a voice, a memory, and a score for every response it writes.
+NIO is a middleware layer for Claude Code that scores every response for quality, enforces a consistent voice, and remembers across sessions.
 
-It works standalone with Claude Code. If you also use [Hermes Agent](https://github.com/NousResearch/hermes-agent), NIO plugs in as a hook with zero patches. But you do not need Hermes to use NIO.
+- **Anti-slop scoring**: 29 patterns across 3 tiers catch AI writing tells before they ship. Every turn gets a 0-100 score.
+- **Soul system**: Versioned personality prompts with semver, diff, and rollback. Treat your agent's behavior like software.
+- **Voice profiles**: Tone rules, banned phrases, formatting constraints. Applied at runtime to every outbound message.
+- **Persistent memory**: SQLite-backed session resume. New sessions carry context from previous ones automatically.
+- **Dashboard**: `localhost:4242` shows quality scores, session history, memory browser, and platform connections.
 
-```
-                    Claude Code     NIO
-                    ───────────     ───
-voice DNA           no              yes (runtime enforcement)
-anti-slop           no              yes (29 patterns, 3 tiers)
-soul versioning     no              yes (semver, diff, rollback)
-session memory      no              yes (SQLite, cross-session resume)
-metrics             no              yes (slop, latency, signals)
-dashboard           no              yes (localhost:4242)
-team mode           no              yes (shared souls, git memory)
-```
-
-**Optional Hermes bridge**: If you already use Hermes for multi-platform messaging (Discord, Telegram, WhatsApp, Slack, Signal), NIO installs as a plugin at `~/.hermes/hooks/nio/`. Your Hermes conversations and your Claude Code sessions share one metrics store, one soul, one voice. `nio setup memory` imports your existing Hermes memories into NIO's DB. You keep both.
+Works standalone with Claude Code. Optionally bridges to [Hermes Agent](https://github.com/NousResearch/hermes-agent) for multi-platform messaging (Discord, WhatsApp, Telegram).
 
 ## CLI-first, no APIs
 
@@ -99,57 +73,21 @@ The CLI is the primary interface. The dashboard at `localhost:4242` is a viewer,
 
 Claude Code integration works the same way. NIO installs a skill and hooks that write to the same local DB. No sidecar process, no external endpoint.
 
-## Built in public
+## Background
 
-NIO is not a weekend repo. It is the result of 2.5 months of building in public with Claude Code.
+Extracted from 2.5 months of daily Claude Code work across 8 shipped repos. The patterns in NIO (structured handoffs, persistent memory, soul prompts, anti-slop scoring) were running in production before they were packaged here.
 
-**The timeline:**
+Prior work: [recursive-data-drift](https://github.com/shawnla90/recursive-data-drift) (context handoff engine), [shawn-gtme-os](https://github.com/shawnla90/shawn-gtme-os) (GTM coding agent, NIO's foundation), plus 4 full-stack websites shipped with these techniques.
 
-- **Feb 2026**: Started with [recursive-data-drift](https://github.com/shawnla90/recursive-data-drift), the first context handoff engine. Structured markdown handoffs between Claude Code sessions so no context was lost.
-- **Mar 2026**: Built [shawn-gtme-os](https://github.com/shawnla90/shawn-gtme-os), a GTM coding agent with voice DNA, anti-slop validation, and the first soul system. This became NIO's foundation.
-- **Mar-Apr 2026**: Shipped 4 full-stack websites ([shawnos.ai](https://shawnos.ai), [thegtmos.ai](https://thegtmos.ai), [clearbox.run](https://clearbox.run), [treadit.ai](https://treadit.ai)), each with its own repo, CI, and deployment.
-- **Apr 2026**: Extracted everything into NIO. The soul system, voice profiles, anti-slop registry, persistent memory, and dashboard are all patterns that were already running in production across those repos.
+## Hermes bridge
 
-**The numbers:**
+If you use [Hermes Agent](https://github.com/NousResearch/hermes-agent) for multi-platform messaging, NIO installs as a zero-patch plugin at `~/.hermes/hooks/nio/`. Your Discord, WhatsApp, and Telegram conversations get the same scoring, memory, and voice enforcement as your Claude Code sessions. `nio setup memory` imports your existing Hermes memories. You do not need Hermes to use NIO.
 
-- Claude Code Max plan ($200/mo, no API). Two months. $400 total.
-- 8 repos. 60+ GitHub stars. ~15 forks.
-- Zero throttles hit. Not once. Off-peak timezone helped, but the context engineering is the real factor.
-- Daily crons running Claude Code for automated commits, logs, and monitoring across every repo.
-- NIO itself: 55+ commits, 141 tests, CI green on Python 3.11/3.12/3.13.
+## Persistent memory
 
-**The technique:**
+Sessions survive shutdown. When a new session starts, NIO summarizes the previous one and injects it into the system prompt. Your agent knows what it did last time, what you were working on, and the quality of its own output.
 
-Structured handoffs between sessions. Persistent memory in SQLite. Soul prompts that keep the agent focused. Anti-slop scoring that catches quality drift before it compounds. CLAUDE.md files that give each repo its own context. NIO packages all of that into something you can `pip install` and use today.
-
-This is not a framework built from theory. It is the tooling extracted from a working build practice. The proof is the repos.
-
-## What is Hermes?
-
-[Hermes Agent](https://github.com/NousResearch/hermes-agent) is an open-source multi-platform AI agent runtime by Nous Research. It connects Claude (or other LLMs) to messaging platforms: Discord, WhatsApp, Telegram, Slack, Signal, email, and more. It handles the gateway, session management, and tool execution.
-
-NIO is not Hermes. NIO is what sits on top.
-
-Hermes gives you the runtime. NIO gives you the personality (souls), the writing style (voices), the quality filter (anti-slop), the metrics (slop scores, latency, session tracking), the dashboard (localhost:4242), the persistent memory (SQLite, cross-session resume), and the team mode (shared souls, git-backed memory).
-
-If you already use Hermes, NIO installs as a zero-patch plugin at `~/.hermes/hooks/nio/`. Your existing platform connections keep working. NIO adds scoring, memory, and voice enforcement to every message.
-
-If you do not use Hermes, NIO works standalone with Claude Code. Install it, run `nio setup`, and your Claude Code sessions get tracked, scored, and persisted.
-
-## How persistent memory works
-
-Every session your agent has is recorded in `~/.nio/nio.db`. When a new session starts, NIO:
-
-1. Finds the most recent ended session
-2. Summarizes it (task type, turn count, slop average, first user message)
-3. Stores the summary as `context_snapshot` in the new session row
-4. Injects the summary into the system prompt as `nio_memory_context`
-
-The result: your agent knows what it did last time. It knows what you were working on. It knows the quality of its own output.
-
-Memory also imports from external sources. `nio setup memory` pulls in your Hermes conversation history (`~/.hermes/memories/MEMORY.md`) and your Claude Code handoff documents (`~/.claude/handoffs/*.md`). These are deduplicated by SHA-256 hash and stored in the `memory_context` table. 63 entries imported on first run from a working system.
-
-The memory bridge is bidirectional. `sync_back_to_hermes()` writes NIO context back to Hermes memory files. Both systems stay in sync.
+`nio setup memory` imports existing context from Hermes memories and Claude Code handoff documents, deduplicated by hash. The memory bridge is bidirectional.
 
 ## Quick start
 
