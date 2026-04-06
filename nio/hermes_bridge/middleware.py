@@ -42,23 +42,35 @@ async def _on_session_start(context: dict) -> None:
     from nio.core.voice import get_active_voice, load_voice
     from nio.core.metrics import create_session
 
-    soul_ref = get_active_soul()
-    voice_ref = get_active_voice()
+    # Mode-aware resolution: team mode overrides global
+    try:
+        from nio.core.mode import get_active_mode, get_effective_soul, get_effective_voice, get_team_id
+        mode = get_active_mode()
+        if mode == "team":
+            soul_id, soul_version = get_effective_soul()
+            voice_id, voice_version = get_effective_voice()
+            context["team_id"] = get_team_id()
+        else:
+            raise ValueError("global mode")
+    except Exception:
+        # Global mode fallback
+        soul_ref = get_active_soul()
+        voice_ref = get_active_voice()
 
-    soul_id = ""
-    soul_version = ""
-    voice_id = ""
-    voice_version = ""
+        soul_id = ""
+        soul_version = ""
+        voice_id = ""
+        voice_version = ""
 
-    if soul_ref and "@" in soul_ref:
-        soul_id, soul_version = soul_ref.split("@", 1)
-    elif soul_ref:
-        soul_id = soul_ref
+        if soul_ref and "@" in soul_ref:
+            soul_id, soul_version = soul_ref.split("@", 1)
+        elif soul_ref:
+            soul_id = soul_ref
 
-    if voice_ref and "@" in voice_ref:
-        voice_id, voice_version = voice_ref.split("@", 1)
-    elif voice_ref:
-        voice_id = voice_ref
+        if voice_ref and "@" in voice_ref:
+            voice_id, voice_version = voice_ref.split("@", 1)
+        elif voice_ref:
+            voice_id = voice_ref
 
     platform = context.get("platform", "cli")
     team_id = context.get("team_id", "")
