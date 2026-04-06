@@ -221,11 +221,6 @@ def summarize_session(session_id: str, conn=None) -> str:
         (session_id,),
     ).fetchone()
 
-    last_agent = conn.execute(
-        "SELECT agent_msg FROM turns WHERE session_id = ? AND agent_msg != '' ORDER BY turn_index DESC LIMIT 1",
-        (session_id,),
-    ).fetchone()
-
     turn_count = conn.execute(
         "SELECT COUNT(*) FROM turns WHERE session_id = ?", (session_id,)
     ).fetchone()[0]

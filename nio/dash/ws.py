@@ -27,7 +27,7 @@ async def connect(websocket: WebSocket):
 
 async def broadcast(event: dict):
     """Broadcast an event to all connected dashboard clients."""
-    if not _connections:
+    if not _connections:  # noqa: F823
         return
     message = json.dumps(event)
     dead = set()

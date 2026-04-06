@@ -87,7 +87,7 @@ def join_team(repo_url: str) -> dict:
     """
     import tempfile
 
-    NIO_HOME = Path.home() / ".nio"
+    nio_home = Path.home() / ".nio"
     tmp = Path(tempfile.mkdtemp(prefix="nio-join-"))
 
     try:
@@ -115,7 +115,7 @@ def join_team(repo_url: str) -> dict:
         soul_version = config.get("soul", {}).get("pinned_version", "0.1.0")
 
         # Copy .nio/ to ~/.nio/teams/{team_id}/
-        teams_dir = NIO_HOME / "teams" / team_id
+        teams_dir = nio_home / "teams" / team_id
         if teams_dir.exists():
             shutil.rmtree(teams_dir)
         shutil.copytree(tmp / "repo" / ".nio", teams_dir)

@@ -63,6 +63,8 @@ def status():
 @app.command()
 def doctor():
     """Run diagnostics: hook installed? db ok? hermes reachable?"""
+    from pathlib import Path
+
     from rich.console import Console
 
     from nio.core.db import check_db
