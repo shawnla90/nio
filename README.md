@@ -79,7 +79,7 @@ anti-slop           no              yes (29 patterns, 3 tiers)
 soul versioning     no              yes (semver, diff, rollback)
 metrics             no              yes (slop, latency, signals)
 dashboard           no              yes (localhost:4242, autostart)
-team mode           no              yes (signed souls, git memory)
+team mode           no              yes (shared souls, git memory)
 claude code         no              yes (skill + hooks)
 ```
 
@@ -253,10 +253,9 @@ nio team join github.com/org/repo
 
 When a collaborator enters the repo directory, NIO auto-activates the team soul.
 
-- **Signed souls** . signature verification, prompt injection detection
 - **Git-backed memory** . shared context at `.nio/memory/`
 - **Owner-controlled releases** . `nio team release` with permission enforcement
-- **Trust model** . pin voice profiles, require signed soul bodies
+- **Trust model** . pin voice profiles (soul signing planned for v0.2)
 
 ## CLI
 
@@ -289,7 +288,7 @@ All runtime state lives at `~/.nio/`:
   logs/            dash stdout/stderr
 ```
 
-Separate from Hermes state. Clean uninstall. Cross-DB queries via `ATTACH DATABASE` when needed.
+Separate from Hermes state. Clean uninstall.
 
 ## License
 
