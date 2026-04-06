@@ -1,6 +1,7 @@
 """NIO terminal boot sequence.
 
 Donkey Kong-style: boss throws 429 rate limits, NIO dodges and climbs.
+Sprite zigzags platforms, jumps over barrels, knocks boss off, victory.
 """
 
 from __future__ import annotations
@@ -28,6 +29,7 @@ def _at(r, c, text):
 
 # --- Characters ---
 SPRITE = [f"{B}▄█▄{R}", f"{B}▐█▌{R}", f"{B}▀ ▀{R}"]
+SPRITE_JUMP = [f"{YEL}▄█▄{R}", f"{YEL}▐█▌{R}", f"{YEL}▀ ▀{R}"]  # dodge flash
 
 BOSS = [
     f"{RED}╔═══╗{R}",
@@ -46,58 +48,55 @@ TITLE = f"""{BOLD}{G}  ███╗   ██╗ ██╗  ██████╗
   ╚═╝  ╚═══╝ ╚═╝  ╚═════╝{R}"""
 
 SCENE = [
-    f"{G}  ╔═══════════════════════════════════════════════════╗{R}",       # row 0
-    f"{G}  ║{R} {W}~/.nio/nio.db{R}                        {D}SQLite+WAL{R} {G}║{R}",  # row 1
-    f"{G}  ╠═══════════════════════════════════════════════════╣{R}",       # row 2
-    f"{G}  ║{R}  {D}┌──────────┐  ┌────────────┐  ┌────────────┐{R} {G}║{R}",  # row 3
-    f"{G}  ║{R}  {D}│{W}team_state{D}│  │{W}voice_versns{D}│  │{W} schema_info{D}│{R} {G}║{R}",  # row 4
-    f"{G}  ║{R}  {D}└──────────┘  └────────────┘  └────────────┘{R} {G}║{R}",  # row 5
-    f"{G}  ║{B}══════════════════════════════════════════════════{G}║{R}",   # row 6 platform
-    f"{G}  ║{R}  {D}┌──────────┐  ┌────────────┐  ┌────────────┐{R} {G}║{R}",  # row 7
-    f"{G}  ║{R}  {D}│{W} sessions {D}│  │{W}    turns   {D}│  │{W}soul_version{D}│{R} {G}║{R}",  # row 8
-    f"{G}  ║{R}  {D}└──────────┘  └────────────┘  └────────────┘{R} {G}║{R}",  # row 9
-    f"{G}  ║{B}══════════════════════════════════════════════════{G}║{R}",   # row 10 platform
-    f"{G}  ║{R}  {D}slop_score    latency_ms       body_sha256{R}  {G}║{R}",  # row 11
-    f"{G}  ║{R}  {D}user_msg      slop_violations  frontmatter{R}  {G}║{R}",  # row 12
-    f"{G}  ║{B}══════════════════════════════════════════════════{G}║{R}",   # row 13 platform
-    f"{G}  ╚═══════════════════════════════════════════════════╝{R}",       # row 14
+    f"{G}  ╔═══════════════════════════════════════════════════╗{R}",
+    f"{G}  ║{R} {W}~/.nio/nio.db{R}                        {D}SQLite+WAL{R} {G}║{R}",
+    f"{G}  ╠═══════════════════════════════════════════════════╣{R}",
+    f"{G}  ║{R}  {D}┌──────────┐  ┌────────────┐  ┌────────────┐{R} {G}║{R}",
+    f"{G}  ║{R}  {D}│{W}team_state{D}│  │{W}voice_versns{D}│  │{W} schema_info{D}│{R} {G}║{R}",
+    f"{G}  ║{R}  {D}└──────────┘  └────────────┘  └────────────┘{R} {G}║{R}",
+    f"{G}  ║{B}══════════════════════════════════════════════════{G}║{R}",
+    f"{G}  ║{R}  {D}┌──────────┐  ┌────────────┐  ┌────────────┐{R} {G}║{R}",
+    f"{G}  ║{R}  {D}│{W} sessions {D}│  │{W}    turns   {D}│  │{W}soul_version{D}│{R} {G}║{R}",
+    f"{G}  ║{R}  {D}└──────────┘  └────────────┘  └────────────┘{R} {G}║{R}",
+    f"{G}  ║{B}══════════════════════════════════════════════════{G}║{R}",
+    f"{G}  ║{R}  {D}slop_score    latency_ms       body_sha256{R}  {G}║{R}",
+    f"{G}  ║{R}  {D}user_msg      slop_violations  frontmatter{R}  {G}║{R}",
+    f"{G}  ║{B}══════════════════════════════════════════════════{G}║{R}",
+    f"{G}  ╚═══════════════════════════════════════════════════╝{R}",
 ]
 
-SCN = 9  # scene start row (row 9 in terminal)
+SCN = 9  # scene start row
 
-# Zigzag stops: (terminal_row, col)
-# Platform rows in terminal: bottom=SCN+13, mid=SCN+10, mid2=SCN+6, top=SCN+2
+# Zigzag climb path: (row, col)
 CLIMB = [
-    # start bottom-left
-    (SCN + 13, 5),
-    # run right across bottom
-    (SCN + 13, 28), (SCN + 13, 50),
-    # climb right side
-    (SCN + 10, 50),
-    # run left across middle
-    (SCN + 10, 28), (SCN + 10, 5),
-    # climb left side
-    (SCN + 6, 5),
-    # run right across upper
-    (SCN + 6, 28), (SCN + 6, 50),
-    # climb to top
-    (SCN + 2, 50),
-    # run to boss
-    (SCN + 2, 28),
+    (SCN + 13, 5),                       # start bottom-left
+    (SCN + 13, 28), (SCN + 13, 50),      # run right across bottom
+    (SCN + 10, 50),                       # climb right side
+    (SCN + 10, 28), (SCN + 10, 5),       # run left across middle
+    (SCN + 6, 5),                         # climb left side
+    (SCN + 6, 28), (SCN + 6, 50),        # run right across upper
+    (SCN + 2, 50),                        # climb to top-right (AWAY from boss at col 25)
 ]
 
-# Barrel drops: (start_col, timing_index) - which climb step triggers each barrel
+# Barrel drops: (barrel_col, trigger_step, dodge_col)
+# dodge_col = where sprite jumps to dodge (opposite side of barrel)
 BARRELS = [
-    (48, 1),   # boss throws right as NIO starts running
-    (8, 3),    # throws left as NIO climbs right
-    (48, 5),   # throws right as NIO runs left
-    (8, 7),    # throws left as NIO runs right
-    (28, 9),   # throws center on final climb
+    (48, 1, 10),    # barrel right, sprite dodges left
+    (8, 3, 50),     # barrel left, sprite is already right
+    (48, 5, 10),    # barrel right, sprite dodges left
+    (8, 6, 50),     # barrel left BEFORE sprite reaches center (was step 7)
+    (28, 9, 50),    # barrel center on final climb, sprite is right
 ]
 
 
 def _draw_sprite(row, col):
     for j, s in enumerate(SPRITE):
+        _at(row + j, col, s)
+
+
+def _draw_sprite_jump(row, col):
+    """Flash sprite in yellow (dodge state)."""
+    for j, s in enumerate(SPRITE_JUMP):
         _at(row + j, col, s)
 
 
@@ -111,21 +110,39 @@ def _draw_boss(row, col):
         _at(row + j, col, line)
 
 
+def _clear_boss(row, col):
+    for j in range(3):
+        _at(row + j, col, "     ")
+
+
 def _drop_barrel(col, start_row, end_row):
-    """Animate a 429 barrel falling down."""
+    """Animate a 429 barrel falling down fast."""
     for r in range(start_row, end_row + 1, 2):
         if r > start_row:
             _at(r - 2, col, BARREL_CLEAR)
         _at(r, col, BARREL)
         sys.stdout.flush()
-        time.sleep(0.025)
-    # Clear at bottom
+        time.sleep(0.02)
     _at(end_row, col, BARREL_CLEAR)
     sys.stdout.flush()
 
 
+def _dodge_jump(row, from_col, to_col):
+    """Sprite jumps sideways to dodge a barrel (quick hop)."""
+    _clear_sprite(row, from_col)
+    # Jump up 1 row briefly
+    _draw_sprite_jump(row - 1, to_col)
+    sys.stdout.flush()
+    time.sleep(0.06)
+    _clear_sprite(row - 1, to_col)
+    # Land at dodge position
+    _draw_sprite(row, to_col)
+    sys.stdout.flush()
+    time.sleep(0.04)
+
+
 def _slide(from_col, to_col, row):
-    """Slide sprite horizontally across a platform."""
+    """Slide sprite horizontally."""
     step = 4 if to_col > from_col else -4
     c = from_col
     while True:
@@ -141,18 +158,30 @@ def _slide(from_col, to_col, row):
         time.sleep(0.02)
 
 
-def _climb(from_row, to_row, col):
+def _climb_vertical(from_row, to_row, col):
     """Climb sprite vertically."""
     direction = -1 if to_row < from_row else 1
     r = from_row
     while r != to_row:
         _clear_sprite(r, col)
         r += direction
-        # Draw ladder rung
         _at(r + (2 if direction == -1 else 0), col + 1, f"{D}╎{R}")
         _draw_sprite(r, col)
         sys.stdout.flush()
         time.sleep(0.02)
+
+
+def _get_memory_stats():
+    """Query nio.db for session/turn counts (returns defaults if no DB)."""
+    try:
+        from nio.core.db import get_connection
+        conn = get_connection()
+        sessions = conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
+        turns = conn.execute("SELECT COUNT(*) FROM turns").fetchone()[0]
+        conn.close()
+        return sessions, turns
+    except Exception:
+        return 0, 0
 
 
 def boot_animated():
@@ -183,20 +212,20 @@ def boot_animated():
             sys.stdout.flush()
             time.sleep(0.02)
 
-        # --- Boss appears at top ---
-        boss_row, boss_col = SCN - 1, 25
+        # --- Boss appears at top-left of scaffold ---
+        boss_row, boss_col = SCN, 5
         _draw_boss(boss_row, boss_col)
         sys.stdout.flush()
-        time.sleep(0.3)
+        time.sleep(0.25)
 
         # Boss shakes
         for _ in range(2):
             _draw_boss(boss_row, boss_col + 1)
             sys.stdout.flush()
-            time.sleep(0.06)
+            time.sleep(0.05)
             _draw_boss(boss_row, boss_col - 1)
             sys.stdout.flush()
-            time.sleep(0.06)
+            time.sleep(0.05)
         _draw_boss(boss_row, boss_col)
         sys.stdout.flush()
         time.sleep(0.1)
@@ -211,25 +240,31 @@ def boot_animated():
         for step_i in range(1, len(CLIMB)):
             stop_row, stop_col = CLIMB[step_i]
 
-            # Check if boss should throw a barrel now
+            # Check if boss should throw a barrel
             if barrel_idx < len(BARRELS):
-                bcol, btrigger = BARRELS[barrel_idx]
+                bcol, btrigger, dodge_col = BARRELS[barrel_idx]
                 if step_i == btrigger:
                     # Boss shakes and throws
                     _draw_boss(boss_row, boss_col + 1)
                     sys.stdout.flush()
-                    time.sleep(0.04)
+                    time.sleep(0.03)
                     _draw_boss(boss_row, boss_col)
 
-                    # Barrel falls (in background feel - quick)
+                    # Sprite dodges if barrel lands near current position
+                    sprite_near_barrel = abs(prev_col - bcol) < 10
+                    if sprite_near_barrel:
+                        _dodge_jump(prev_row, prev_col, dodge_col)
+                        prev_col = dodge_col
+
+                    # Barrel falls
                     _drop_barrel(bcol, SCN + 1, SCN + 13)
                     barrel_idx += 1
 
-            # Move sprite
+            # Move sprite to next stop
             if stop_row == prev_row:
                 _slide(prev_col, stop_col, stop_row)
             else:
-                _climb(prev_row, stop_row, prev_col)
+                _climb_vertical(prev_row, stop_row, prev_col)
                 if stop_col != prev_col:
                     prev_row = stop_row
                     _slide(prev_col, stop_col, stop_row)
@@ -238,44 +273,81 @@ def boot_animated():
 
         time.sleep(0.1)
 
-        # --- NIO reaches boss: boss gets knocked off ---
-        # Flash boss
-        for j in range(3):
-            _at(boss_row + j, boss_col, "     ")
+        # --- NIO charges boss from the right ---
+        # Sprite is at (SCN+2, 50), boss is at (SCN, 5)
+        # Sprite dashes left toward boss
+        _at(prev_row, prev_col + 4, f"{B}>{R}")  # charge indicator
         sys.stdout.flush()
         time.sleep(0.08)
+        _at(prev_row, prev_col + 4, " ")
+
+        # Quick slide toward boss (stop at col 14, not overlapping boss at col 5)
+        _slide(prev_col, 14, prev_row)
+        prev_col = 14
+        sys.stdout.flush()
+        time.sleep(0.05)
+
+        # Impact flash
+        _draw_sprite_jump(prev_row, prev_col)
+        sys.stdout.flush()
+        time.sleep(0.06)
+        _draw_sprite(prev_row, prev_col)
+
+        # Boss gets hit - flashes and tumbles off LEFT side
+        _clear_boss(boss_row, boss_col)
+        sys.stdout.flush()
+        time.sleep(0.05)
         _draw_boss(boss_row, boss_col)
         sys.stdout.flush()
-        time.sleep(0.08)
+        time.sleep(0.05)
 
-        # Boss falls off right side
-        for offset in range(1, 8):
-            for j in range(3):
-                _at(boss_row + j, boss_col, "     ")
-            _draw_boss(boss_row + offset, boss_col + offset * 2)
+        # Boss falls off left
+        for offset in range(1, 6):
+            _clear_boss(boss_row + offset - 1, boss_col - (offset - 1) * 2)
+            new_r = boss_row + offset
+            new_c = max(1, boss_col - offset * 2)
+            if new_r < SCN + 15:
+                _draw_boss(new_r, new_c)
             sys.stdout.flush()
             time.sleep(0.04)
-        # Clear fallen boss
-        for j in range(3):
-            _at(boss_row + 7 + j, boss_col + 14, "     ")
+
+        # Clear last boss position
+        _clear_boss(boss_row + 5, max(1, boss_col - 10))
         sys.stdout.flush()
 
         time.sleep(0.15)
 
-        # --- Victory: context items appear ---
-        drops = [
-            (8, 4, f"{B}◆{G}soul{R}"),
-            (8, 16, f"{B}◆{G}voice{R}"),
-            (8, 29, f"{B}◆{G}memory{R}"),
-            (8, 43, f"{B}◆{G}slop{R}"),
-        ]
-        for _, dc, dlabel in drops:
-            _at(8, dc, dlabel)
-            sys.stdout.flush()
-            time.sleep(0.06)
+        # --- Victory moment ---
+        # Move sprite to center of top platform
+        _slide(prev_col, 28, prev_row)
 
-        time.sleep(0.2)
-        _at(26, 1, "")
+        # Victory text
+        _at(8, 12, f"{BOLD}{B}  ETERNAL MEMORY LOADED  {R}")
+        sys.stdout.flush()
+        time.sleep(0.3)
+
+        # Context items drop in
+        drops = [
+            (SCN - 2, 5, f"{B}◆{G} soul{R}"),
+            (SCN - 2, 17, f"{B}◆{G} voice{R}"),
+            (SCN - 2, 30, f"{B}◆{G} memory{R}"),
+            (SCN - 2, 44, f"{B}◆{G} anti-slop{R}"),
+        ]
+        for dr, dc, dlabel in drops:
+            _at(dr, dc, dlabel)
+            sys.stdout.flush()
+            time.sleep(0.08)
+
+        # Memory stats
+        sessions, turns = _get_memory_stats()
+        if sessions > 0:
+            _at(SCN + 15, 3, f"{D}sessions: {W}{sessions}{D}  turns: {W}{turns}{D}  memory: {B}eternal{R}")
+        else:
+            _at(SCN + 15, 3, f"{D}first run. memory starts now.{R}")
+        sys.stdout.flush()
+
+        time.sleep(0.3)
+        _at(SCN + 17, 1, "")
         sys.stdout.flush()
 
     finally:
@@ -303,4 +375,9 @@ def boot_static():
     print()
     for line in SCENE:
         print(line)
+    sessions, turns = _get_memory_stats()
+    if sessions > 0:
+        print(f"  {D}sessions: {W}{sessions}{D}  turns: {W}{turns}{D}  memory: {B}eternal{R}")
+    else:
+        print(f"  {D}first run. memory starts now.{R}")
     print()
