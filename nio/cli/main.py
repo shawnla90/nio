@@ -31,7 +31,7 @@ def status():
     from nio.core.soul import get_active_soul
     from nio.core.voice import get_active_voice
     from nio.core.metrics import get_recent_slop_avg
-    from nio.cli.boot import boot_splash, boot_status
+    from nio.cli.boot import boot_animated, boot_status
 
     soul = get_active_soul() or "none"
     voice = get_active_voice() or "none"
@@ -41,7 +41,7 @@ def status():
     hermes = "hooked" if _check_hermes_hook() else "not found"
     dash = ":4242" if _check_dash() else "stopped"
 
-    boot_splash(animate=True)
+    boot_animated()
     boot_status(soul=soul, voice=voice, slop=slop_str, dash=dash, hermes=hermes)
 
 
