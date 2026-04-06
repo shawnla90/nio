@@ -55,14 +55,19 @@ SCENE = [
     f"{G}  ╚═══════════════════════════════════════════════════╝{R}",
 ]
 
-# Ladder positions (column where sprite climbs, row positions for each stop)
-# Sprite climbs on the right edge, inside the box
+# Zigzag climb: alternates left/right like DK (row, col)
 CLIMB_STOPS = [
-    (23, 52),  # bottom: below lowest platform
-    (20, 52),  # on bottom platform
-    (16, 52),  # on middle platform
-    (12, 52),  # on top platform (tables row)
-    (9, 52),   # at the DB header
+    (23, 5),   # bottom-left: below scaffold
+    (20, 5),   # climb up left side
+    (20, 28),  # run across bottom platform to center
+    (20, 52),  # run across to right side
+    (16, 52),  # climb up right side
+    (16, 28),  # run across middle platform to center
+    (16, 5),   # run across to left side
+    (12, 5),   # climb up left side
+    (12, 28),  # run across top platform to center
+    (12, 52),  # run across to right side
+    (9, 52),   # climb to header
 ]
 
 
@@ -96,28 +101,46 @@ def boot_animated():
 
         time.sleep(0.15)
 
-        # --- Sprite climbs up ---
-        prev_row = None
+        # --- Sprite zigzags up through scaffold ---
+        prev_row, prev_col = None, None
         for stop_row, stop_col in CLIMB_STOPS:
             # Erase previous sprite
             if prev_row is not None:
                 for j in range(3):
                     _at(prev_row + j, prev_col, "   ")
 
-            # Draw ladder segment between stops
-            if prev_row is not None:
-                for lr in range(stop_row + 3, prev_row):
-                    _at(lr, stop_col, f"{D}│{R}")
+            if prev_row is not None and stop_row == prev_row:
+                # Horizontal run: slide across platform
+                step = 3 if stop_col > prev_col else -3
+                c = prev_col
+                while (step > 0 and c < stop_col) or (step < 0 and c > stop_col):
+                    for j in range(3):
+                        _at(prev_row + j, c, "   ")
+                    c += step
+                    c = min(c, stop_col) if step > 0 else max(c, stop_col)
+                    for j, sline in enumerate(SPRITE):
+                        _at(stop_row + j, c, sline)
                     sys.stdout.flush()
-                    time.sleep(0.02)
+                    time.sleep(0.025)
+                # Clean up last intermediate position
+                if c != stop_col:
+                    for j in range(3):
+                        _at(stop_row + j, c, "   ")
+            elif prev_row is not None:
+                # Vertical climb: draw ladder
+                lo, hi = min(stop_row + 3, prev_row), max(stop_row + 3, prev_row)
+                for lr in range(hi - 1, lo - 1, -1):
+                    _at(lr, stop_col, f"{D}╎{R}")
+                    sys.stdout.flush()
+                    time.sleep(0.015)
 
-            # Draw sprite at new position
+            # Draw sprite at final position
             for j, sline in enumerate(SPRITE):
                 _at(stop_row + j, stop_col, sline)
 
             prev_row, prev_col = stop_row, stop_col
             sys.stdout.flush()
-            time.sleep(0.15)
+            time.sleep(0.08)
 
         time.sleep(0.1)
 
