@@ -29,8 +29,17 @@
 ---
 
 <p align="center">
+  <img src="docs/screenshots/nio-boot.gif" alt="NIO Boot Sequence" width="480" />
+</p>
+
+<details>
+<summary>Architecture diagram</summary>
+
+<p align="center">
   <img src="docs/screenshots/nio-hero.svg" alt="NIO Architecture" width="800" />
 </p>
+
+</details>
 
 ---
 
@@ -47,7 +56,13 @@ pip install nio-agent
 nio install
 ```
 
-That's it. Dashboard starts at `localhost:4242`. Hermes hook installed. Soul activated.
+Then run the setup wizard:
+
+```bash
+nio setup
+```
+
+Walks you through mode selection (global vs team), platform connections (Discord, Telegram, WhatsApp, Slack, Signal), memory import, and verification. Dashboard starts at `localhost:4242`.
 
 ## What NIO adds
 
@@ -247,6 +262,7 @@ When a collaborator enters the repo directory, NIO auto-activates the team soul.
 
 ```
 nio install [--migrate-hermes]
+nio setup [mode|platforms|memory|verify]
 nio status
 nio doctor
 
