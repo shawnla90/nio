@@ -107,8 +107,8 @@ def _install_claude_code_skill(console):
     skill_dir = Path.home() / ".claude" / "skills" / "nio"
     skill_dir.mkdir(parents=True, exist_ok=True)
 
-    # Find the bundled skill.md
-    pkg_skill = Path(__file__).parent.parent / "claude_code" / "skill.md"
+    # Find the bundled SKILL.md
+    pkg_skill = Path(__file__).parent.parent / "claude_code" / "SKILL.md"
     target_skill = skill_dir / "SKILL.md"
 
     if pkg_skill.exists():
