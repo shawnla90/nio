@@ -1,1 +1,54 @@
-<!DOCTYPE html><html><head><title>NIO</title></head><body><h1>Coming in Phase 6</h1></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NIO - Team</title>
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+    <nav class="nav">
+        <a href="/" class="nav-brand">NIO</a>
+        <div class="nav-links">
+            <a href="/">Now Playing</a>
+            <a href="/souls/diff">Soul Diff</a>
+            <a href="/metrics">Metrics</a>
+            <a href="/team" class="active">Team</a>
+            <a href="/registry">Registry</a>
+            <a href="/gateway">Gateway</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <h1>Team Activity</h1>
+
+        <div class="card" style="margin-bottom: 2rem;">
+            <div class="card-label">Setup</div>
+            <p class="card-text">
+                <code>nio team init --name my-team</code> to create a team.<br>
+                <code>nio team join &lt;repo-url&gt;</code> to join one.
+            </p>
+        </div>
+
+        <div class="card-grid">
+            <div class="card">
+                <div class="card-label">Members</div>
+                <div class="card-value">--</div>
+            </div>
+            <div class="card">
+                <div class="card-label">Soul Version</div>
+                <div class="card-value">--</div>
+            </div>
+            <div class="card">
+                <div class="card-label">Team Slop Avg</div>
+                <div class="card-value">--</div>
+            </div>
+        </div>
+
+        <h2 style="margin-top: 2rem;">Leaderboard</h2>
+        <div class="empty-state">Cleanest output wins. Data appears once team members are active.</div>
+
+        <h2 style="margin-top: 2rem;">Recent Sessions</h2>
+        <div class="empty-state">No team sessions recorded yet.</div>
+    </main>
+</body>
+</html>

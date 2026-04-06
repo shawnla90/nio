@@ -1,1 +1,70 @@
-<!DOCTYPE html><html><head><title>NIO</title></head><body><h1>Coming in Phase 6</h1></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NIO - Registry</title>
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/" class="nav-brand">NIO</a>
+        <div class="nav-links">
+            <a href="/">Now Playing</a>
+            <a href="/souls/diff">Soul Diff</a>
+            <a href="/metrics">Metrics</a>
+            <a href="/team">Team</a>
+            <a href="/registry" class="active">Registry</a>
+            <a href="/gateway">Gateway</a>
+        </div>
+    </nav>
+
+    <main class="container" x-data="{ tab: 'souls' }">
+        <h1>Registry</h1>
+
+        <div class="tab-bar">
+            <button class="tab-btn" :class="{ active: tab === 'souls' }" @click="tab = 'souls'">Souls</button>
+            <button class="tab-btn" :class="{ active: tab === 'voices' }" @click="tab = 'voices'">Voices</button>
+            <button class="tab-btn" :class="{ active: tab === 'antislop' }" @click="tab = 'antislop'">Anti-Slop</button>
+        </div>
+
+        <div x-show="tab === 'souls'" id="souls-list"
+             hx-get="/api/souls" hx-trigger="load" hx-swap="innerHTML">
+            <div class="empty-state">Loading souls...</div>
+        </div>
+
+        <div x-show="tab === 'voices'" id="voices-list"
+             hx-get="/api/voices" hx-trigger="load" hx-swap="innerHTML">
+            <div class="empty-state">Loading voices...</div>
+        </div>
+
+        <div x-show="tab === 'antislop'">
+            <div class="card-grid" style="margin-top: 1rem;">
+                <div class="card">
+                    <div class="card-label">Critical</div>
+                    <div class="card-value" style="color: var(--red);">20 rules</div>
+                    <p class="card-text">Weight: 3x. Em-dashes, hype words, authority signaling.</p>
+                </div>
+                <div class="card">
+                    <div class="card-label">Context</div>
+                    <div class="card-value" style="color: var(--yellow);">5 rules</div>
+                    <p class="card-text">Weight: 1.5x. Engagement bait, false dichotomies.</p>
+                </div>
+                <div class="card">
+                    <div class="card-label">Natural</div>
+                    <div class="card-value" style="color: var(--green);">4 rules</div>
+                    <p class="card-text">Weight: 0x. Ellipses, arrows, emoji markers.</p>
+                </div>
+            </div>
+            <div class="card" style="margin-top: 1rem;">
+                <div class="card-label">Sync</div>
+                <p class="card-text">
+                    <code>nio antislop sync</code> regenerates Python + TypeScript + Markdown from
+                    <code>registry/anti-slop.json</code>.
+                </p>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

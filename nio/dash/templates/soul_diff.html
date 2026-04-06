@@ -1,1 +1,55 @@
-<!DOCTYPE html><html><head><title>NIO</title></head><body><h1>Coming in Phase 6</h1></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NIO - Soul Diff</title>
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/" class="nav-brand">NIO</a>
+        <div class="nav-links">
+            <a href="/">Now Playing</a>
+            <a href="/souls/diff" class="active">Soul Diff</a>
+            <a href="/metrics">Metrics</a>
+            <a href="/team">Team</a>
+            <a href="/registry">Registry</a>
+            <a href="/gateway">Gateway</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <h1>Soul Diff</h1>
+
+        <form class="diff-form" hx-get="/api/souls/diff" hx-target="#diff-output" hx-swap="innerHTML">
+            <div class="form-row">
+                <label>Version A</label>
+                <input type="text" name="a" value="{{ ref_a }}" placeholder="nio-core@0.1.0" class="input-field">
+            </div>
+            <div class="form-row">
+                <label>Version B</label>
+                <input type="text" name="b" value="{{ ref_b }}" placeholder="nio-core@0.2.0" class="input-field">
+            </div>
+            <button type="submit" class="btn">Compare</button>
+        </form>
+
+        <div id="diff-output" class="diff-container">
+            <div class="empty-state">
+                Enter two soul references to see the prompt diff + metric deltas.
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 2rem;">
+            <div class="card-label">Usage</div>
+            <p class="card-text">
+                CLI: <code>nio soul diff nio-core@0.1.0 nio-core@0.2.0</code>
+            </p>
+            <p class="card-text">
+                Shows unified prompt body diff alongside metric deltas
+                (slop avg, latency p50, user signal, session count).
+            </p>
+        </div>
+    </main>
+</body>
+</html>

@@ -9,6 +9,38 @@ from typing import Optional
 
 NIO_HOME = Path.home() / ".nio"
 
+# Task-type classifier: keyword/regex table
+_TASK_PATTERNS: list[tuple[str, list[str]]] = [
+    ("debugging", ["fix", "debug", "broken", "failing", "crash", "exception", "stack trace",
+                   "not working", "issue", "problem with", "bug"]),
+    ("coding", ["implement", "write code", "function", "class ", "def ", "error",
+                "traceback", "import", "module", "refactor", "compile", "build"]),
+    ("review", ["review", "PR", "pull request", "code review", "LGTM", "approve",
+                "feedback on", "check this", "look at this"]),
+    ("writing", ["write", "draft", "blog", "post", "article", "copy", "content",
+                 "readme", "documentation", "docs"]),
+    ("planning", ["plan", "design", "architect", "strategy", "roadmap", "scope",
+                  "spec", "RFC", "proposal", "approach"]),
+]
+
+
+def classify_task(user_msg: str) -> str:
+    """Classify a user message into a task type using keyword matching.
+
+    Returns: coding, debugging, review, writing, planning, or general.
+    """
+    if not user_msg:
+        return "general"
+    lower = user_msg.lower()
+    scores: dict[str, int] = {}
+    for task_type, keywords in _TASK_PATTERNS:
+        count = sum(1 for kw in keywords if kw.lower() in lower)
+        if count > 0:
+            scores[task_type] = count
+    if not scores:
+        return "general"
+    return max(scores, key=scores.get)
+
 
 def _parse_window(window: str) -> timedelta:
     """Parse a window string like '7d', '24h', '30d' into a timedelta."""

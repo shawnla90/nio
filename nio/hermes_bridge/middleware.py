@@ -81,25 +81,44 @@ async def _on_session_start(context: dict) -> None:
         except Exception:
             pass
 
+    # Always register the session for turn tracking
+    _active_sessions[session_id] = {
+        "voice": None,
+        "turn_index": 0,
+        "session_id": session_id,
+    }
+
     # Load voice for runtime use
     if voice_ref:
         voice = load_voice(voice_ref)
         if voice:
-            _active_sessions[session_id] = {
-                "voice": voice,
-                "turn_index": 0,
-                "session_id": session_id,
-            }
+            _active_sessions[session_id]["voice"] = voice
 
     context["nio_session_id"] = session_id
 
 
 async def _on_agent_start(context: dict) -> None:
-    """Record turn start time and user message."""
+    """Record turn start time, user message, and classify task type."""
     session_id = context.get("nio_session_id")
     if session_id and session_id in _active_sessions:
         _active_sessions[session_id]["turn_start"] = time.time()
-        _active_sessions[session_id]["user_msg"] = context.get("user_message", "")
+        user_msg = context.get("user_message", "")
+        _active_sessions[session_id]["user_msg"] = user_msg
+
+        # Classify task type on first turn
+        if _active_sessions[session_id]["turn_index"] == 0:
+            from nio.core.metrics import classify_task
+            task_type = classify_task(user_msg)
+            _active_sessions[session_id]["task_type"] = task_type
+            # Update session row
+            from nio.core.db import get_connection
+            conn = get_connection()
+            conn.execute(
+                "UPDATE sessions SET task_type = ? WHERE session_id = ?",
+                (task_type, session_id),
+            )
+            conn.commit()
+            conn.close()
 
 
 async def _on_agent_end(context: dict) -> None:
@@ -119,7 +138,7 @@ async def _on_agent_end(context: dict) -> None:
     turn_start = state.get("turn_start", time.time())
     latency_ms = int((time.time() - turn_start) * 1000)
 
-    # Apply voice profile
+    # Apply voice profile + anti-slop validation
     slop_score = 100.0
     violations = []
     if voice:
@@ -129,6 +148,15 @@ async def _on_agent_end(context: dict) -> None:
             {"id": d.id, "tier": d.tier, "description": d.description, "matches": d.matches}
             for d in result.detections
         ]
+    else:
+        # Always run anti-slop even without a voice profile
+        from nio.core.antislop import detect, score
+        slop_score = score(agent_msg)
+        for d in detect(agent_msg):
+            violations.append({
+                "id": d["id"], "tier": d["tier"],
+                "description": d["description"], "matches": d.get("matches", []),
+            })
 
     # Warn if below floor
     soul_floor = state.get("slop_score_floor", 92)
@@ -185,6 +213,18 @@ def _emit_slop_warning(session_id: str, score: float, floor: float, violations: 
 
 
 def _emit_dashboard_event(session_id: str, slop_score: float, latency_ms: int, violations: list):
-    """Emit a websocket event for the live dashboard. Stub for Phase 6."""
-    # TODO: Phase 6 - wire to nio.dash.ws websocket broadcast
-    pass
+    """Emit a websocket event for the live dashboard."""
+    try:
+        from nio.dash.ws import broadcast_sync
+        import datetime
+
+        broadcast_sync({
+            "type": "turn",
+            "session_id": session_id,
+            "slop_score": slop_score,
+            "latency_ms": latency_ms,
+            "violations": violations[:5],
+            "created_at": datetime.datetime.utcnow().isoformat(),
+        })
+    except ImportError:
+        pass  # Dashboard dependencies not installed (e.g., fastapi)

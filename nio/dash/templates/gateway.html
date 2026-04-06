@@ -1,1 +1,66 @@
-<!DOCTYPE html><html><head><title>NIO</title></head><body><h1>Coming in Phase 6</h1></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NIO - Gateway</title>
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+    <nav class="nav">
+        <a href="/" class="nav-brand">NIO</a>
+        <div class="nav-links">
+            <a href="/">Now Playing</a>
+            <a href="/souls/diff">Soul Diff</a>
+            <a href="/metrics">Metrics</a>
+            <a href="/team">Team</a>
+            <a href="/registry">Registry</a>
+            <a href="/gateway" class="active">Gateway</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <h1>Gateway Status</h1>
+
+        <div class="card-grid">
+            <div class="card">
+                <div class="card-label">Hermes</div>
+                <div class="card-value" style="color: var(--green);">Hooked</div>
+                <p class="card-text"><code>~/.hermes/hooks/nio/</code></p>
+            </div>
+            <div class="card">
+                <div class="card-label">Dashboard</div>
+                <div class="card-value" style="color: var(--green);">Running</div>
+                <p class="card-text"><code>localhost:4242</code></p>
+            </div>
+            <div class="card">
+                <div class="card-label">Database</div>
+                <div class="card-value" style="color: var(--green);">Connected</div>
+                <p class="card-text"><code>~/.nio/nio.db</code></p>
+            </div>
+        </div>
+
+        <h2 style="margin-top: 2rem;">Platform Connectivity</h2>
+        <div class="card-grid">
+            <div class="card"><div class="card-label">Claude Code</div><div class="card-value" style="color: var(--green);">Configured</div></div>
+            <div class="card"><div class="card-label">Discord</div><div class="card-value" style="color: var(--muted);">--</div></div>
+            <div class="card"><div class="card-label">Telegram</div><div class="card-value" style="color: var(--muted);">--</div></div>
+            <div class="card"><div class="card-label">WhatsApp</div><div class="card-value" style="color: var(--muted);">--</div></div>
+            <div class="card"><div class="card-label">CLI</div><div class="card-value" style="color: var(--green);">Active</div></div>
+        </div>
+
+        <h2 style="margin-top: 2rem;">Hook Events</h2>
+        <div class="card">
+            <table class="data-table">
+                <thead><tr><th>Event</th><th>Handler</th><th>Status</th></tr></thead>
+                <tbody>
+                    <tr><td>gateway:startup</td><td>Init DB, load soul + voice</td><td style="color: var(--green);">Registered</td></tr>
+                    <tr><td>session:start</td><td>Create session, inject prompts</td><td style="color: var(--green);">Registered</td></tr>
+                    <tr><td>agent:start</td><td>Record user msg, classify task</td><td style="color: var(--green);">Registered</td></tr>
+                    <tr><td>agent:end</td><td>Voice apply, slop score, metrics</td><td style="color: var(--green);">Registered</td></tr>
+                    <tr><td>command:*</td><td>/nio-status, /nio-soul, /nio-dash</td><td style="color: var(--green);">Registered</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</body>
+</html>

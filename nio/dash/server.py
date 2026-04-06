@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, WebSocket
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -122,6 +122,13 @@ async def api_souls():
 async def api_voices():
     from nio.core.voice import list_voices
     return JSONResponse(list_voices())
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    """Live dashboard WebSocket. Middleware pushes turn events here."""
+    from nio.dash.ws import connect
+    await connect(websocket)
 
 
 def main():
