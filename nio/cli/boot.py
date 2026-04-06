@@ -1,11 +1,7 @@
 """NIO terminal boot sequence.
 
-Renders animated ASCII art directly in the terminal:
-- NIO sprite evolves through 5 tiers
-- DB scaffold builds up (DK platforms)
-- Final form climbs through the tables
-- Context items drop in
-- Status readout
+Donkey Kong-style: tiny sprite climbs up DB scaffold platforms.
+Fast, clean, fits one screen.
 """
 
 from __future__ import annotations
@@ -14,267 +10,158 @@ import sys
 import time
 import os
 
-# --- Colors (ANSI true color) ---
-GREEN = "\033[38;2;78;195;115m"
-BRIGHT = "\033[38;2;110;220;150m"
-DIM = "\033[38;2;72;79;88m"
-WHITE = "\033[38;2;230;237;243m"
+G = "\033[38;2;78;195;115m"    # green
+B = "\033[38;2;110;220;150m"   # bright green
+D = "\033[38;2;55;65;75m"      # dim
+W = "\033[38;2;230;237;243m"   # white
+R = "\033[0m"                  # reset
 BOLD = "\033[1m"
-RESET = "\033[0m"
-CLEAR = "\033[2J\033[H"
-HIDE_CURSOR = "\033[?25l"
-SHOW_CURSOR = "\033[?25h"
+CLR = "\033[2J\033[H"
+HIDE = "\033[?25l"
+SHOW = "\033[?25h"
 
+def _at(r, c, text):
+    sys.stdout.write(f"\033[{r};{c}H{text}")
 
-def _goto(row: int, col: int) -> str:
-    return f"\033[{row};{col}H"
+# Tiny sprite (3 lines)
+SPRITE = [f"{B}▄█▄{R}", f"{B}▐█▌{R}", f"{B}▀ ▀{R}"]
 
+# Scene: 24 rows. Sprite climbs right edge via ladders.
+TITLE = f"""{BOLD}{G}  ███╗   ██╗ ██╗  ██████╗
+  ████╗  ██║ ██║ ██╔═══██╗
+  ██╔██╗ ██║ ██║ ██║   ██║
+  ██║╚██╗██║ ██║ ██║   ██║
+  ██║ ╚████║ ██║ ╚██████╔╝
+  ╚═╝  ╚═══╝ ╚═╝  ╚═════╝{R}"""
 
-# --- Sprites (5 tiers, each 9 lines) ---
-TIER_1 = [
-    "     ▄▄     ",
-    "    ▐██▌    ",
-    "    ▐██▌    ",
-    "   ▄████▄   ",
-    "   ▐████▌   ",
-    "    ▐██▌    ",
-    "    ▐██▌    ",
-    "   ▐▌  ▐▌   ",
-    "   ▀▀  ▀▀   ",
+SCENE = [
+    # row 0-7: title + tagline (drawn separately)
+    # row 8: gap
+    # row 9 onward: DB scaffold
+    f"{G}  ╔═══════════════════════════════════════════════════╗{R}",
+    f"{G}  ║{R} {W}~/.nio/nio.db{R}                        {D}SQLite+WAL{R} {G}║{R}",
+    f"{G}  ╠═══════════════════════════════════════════════════╣{R}",
+    f"{G}  ║{R}  {D}┌──────────┐  ┌────────────┐  ┌────────────┐{R} {G}║{R}",
+    f"{G}  ║{R}  {D}│{W}team_state{D}│  │{W}voice_versns{D}│  │{W} schema_info{D}│{R} {G}║{R}",
+    f"{G}  ║{R}  {D}└──────────┘  └────────────┘  └────────────┘{R} {G}║{R}",
+    f"{G}  ║{B}══════════════════════════════════════════════════{G}║{R}",
+    f"{G}  ║{R}  {D}┌──────────┐  ┌────────────┐  ┌────────────┐{R} {G}║{R}",
+    f"{G}  ║{R}  {D}│{W} sessions {D}│  │{W}    turns   {D}│  │{W}soul_version{D}│{R} {G}║{R}",
+    f"{G}  ║{R}  {D}└──────────┘  └────────────┘  └────────────┘{R} {G}║{R}",
+    f"{G}  ║{B}══════════════════════════════════════════════════{G}║{R}",
+    f"{G}  ║{R}  {D}slop_score    latency_ms       body_sha256{R}  {G}║{R}",
+    f"{G}  ║{R}  {D}user_msg      slop_violations  frontmatter{R}  {G}║{R}",
+    f"{G}  ║{B}══════════════════════════════════════════════════{G}║{R}",
+    f"{G}  ╚═══════════════════════════════════════════════════╝{R}",
 ]
 
-TIER_2 = [
-    "     ▄█▄    ",
-    "    ▐███▌   ",
-    "    ▐███▌   ",
-    "  ▄▐████▌   ",
-    "  █▐████▌▄  ",
-    "   ▐████▌█  ",
-    "    ▐██▌    ",
-    "   ▐██ ██▌  ",
-    "   ▀▀  ▀▀   ",
+# Ladder positions (column where sprite climbs, row positions for each stop)
+# Sprite climbs on the right edge, inside the box
+CLIMB_STOPS = [
+    (23, 52),  # bottom: below lowest platform
+    (20, 52),  # on bottom platform
+    (16, 52),  # on middle platform
+    (12, 52),  # on top platform (tables row)
+    (9, 52),   # at the DB header
 ]
-
-TIER_3 = [
-    "    ▄███▄   ",
-    "   ▐█████▌  ",
-    "   ▐█████▌  ",
-    " ▄▌██████▐▄ ",
-    " █▌██████▐█ ",
-    "  ▐██████▌  ",
-    "   ▐████▌   ",
-    "  ▐██  ██▌  ",
-    "  ▀▀▀  ▀▀▀  ",
-]
-
-TIER_4 = [
-    "   ✦▄███▄✦  ",
-    "  ✦▐█████▌✦ ",
-    "   ▐█████▌  ",
-    "·▄▌██████▐▄·",
-    " █▌██████▐█ ",
-    "·▐████████▌·",
-    "  ▐██████▌  ",
-    "  ▐██  ██▌  ",
-    "  ▀▀▀  ▀▀▀  ",
-]
-
-TIER_5 = [
-    " ✦ ◆▄███▄◆ ✦",
-    " ✧▐███████▌✧",
-    "  ▐███████▌ ",
-    "◆▄▌████████▄◆",
-    " █▌████████▐█",
-    "◆▐██████████▌◆",
-    "  ▐████████▌ ",
-    "  ▐███  ███▌ ",
-    "  ▀▀▀▀ ▀▀▀▀ ",
-]
-
-TIERS = [TIER_1, TIER_2, TIER_3, TIER_4, TIER_5]
-TIER_LABELS = ["spark", "scout", "builder", "architect", "alchemist"]
-
-# --- DB Scaffold ---
-DB_SCAFFOLD = [
-    ("┌──────────────────────────────────────────────────────┐", GREEN),
-    ("│  ~/.nio/nio.db                          SQLite + WAL │", None),
-    ("├──────────────────────────────────────────────────────┤", GREEN),
-    ("│ ┌──────────┐  ┌──────────────┐  ┌────────────────┐  │", DIM),
-    ("│ │team_state│  │voice_versions│  │  schema_info   │  │", DIM),
-    ("│ └──────────┘  └──────────────┘  └────────────────┘  │", DIM),
-    ("│══════════════════════════════════════════════════════│", GREEN),
-    ("│ ┌──────────┐  ┌──────────────┐  ┌────────────────┐  │", DIM),
-    ("│ │ sessions │  │    turns     │  │ soul_versions  │  │", DIM),
-    ("│ └──────────┘  └──────────────┘  └────────────────┘  │", DIM),
-    ("│══════════════════════════════════════════════════════│", GREEN),
-    ("│  slop_score    latency_ms       body_sha256         │", DIM),
-    ("│  user_msg      slop_violations  frontmatter         │", DIM),
-    ("│══════════════════════════════════════════════════════│", GREEN),
-    ("└──────────────────────────────────────────────────────┘", GREEN),
-]
-
-NIO_TITLE = [
-    "  ███╗   ██╗ ██╗  ██████╗ ",
-    "  ████╗  ██║ ██║ ██╔═══██╗",
-    "  ██╔██╗ ██║ ██║ ██║   ██║",
-    "  ██║╚██╗██║ ██║ ██║   ██║",
-    "  ██║ ╚████║ ██║ ╚██████╔╝",
-    "  ╚═╝  ╚═══╝ ╚═╝  ╚═════╝ ",
-]
-
-
-def _print_at(row: int, col: int, text: str, color: str = GREEN):
-    sys.stdout.write(f"{_goto(row, col)}{color}{text}{RESET}")
-
-
-def _draw_sprite(start_row: int, col: int, sprite: list[str], color: str = GREEN):
-    for i, line in enumerate(sprite):
-        _print_at(start_row + i, col, line, f"{BOLD}{color}")
-
-
-def _draw_title(start_row: int):
-    for i, line in enumerate(NIO_TITLE):
-        _print_at(start_row + i, 14, line, f"{BOLD}{GREEN}")
-
-
-def _draw_db(start_row: int, up_to: int = -1):
-    lines = DB_SCAFFOLD if up_to < 0 else DB_SCAFFOLD[:up_to]
-    for i, (line, color) in enumerate(lines):
-        c = color or f"{GREEN}"
-        # Colorize table names
-        styled = line
-        for tbl in ["sessions", "turns", "soul_versions", "voice_versions", "team_state", "schema_info"]:
-            if tbl in styled:
-                styled = styled.replace(tbl, f"{WHITE}{tbl}{c}")
-        _print_at(start_row + i, 2, styled, c)
 
 
 def boot_animated():
-    """Run the full animated boot sequence in terminal."""
+    """Run the animated boot in terminal."""
     try:
-        rows = os.get_terminal_size().lines
-        cols = os.get_terminal_size().columns
+        ts = os.get_terminal_size()
+        if ts.columns < 58 or ts.lines < 30:
+            boot_static()
+            return
     except OSError:
         boot_static()
         return
 
-    if cols < 60 or rows < 35:
-        boot_static()
-        return
-
-    sys.stdout.write(HIDE_CURSOR + CLEAR)
+    sys.stdout.write(HIDE + CLR)
     sys.stdout.flush()
 
     try:
-        # --- Phase 1: Title ---
-        _draw_title(2)
-        _print_at(9, 6, "voice DNA. semver souls. anti-slop.", DIM)
-        _print_at(10, 6, "the layer hermes never had.", DIM)
+        # --- Title (instant) ---
+        sys.stdout.write(f"\033[1;1H{TITLE}")
+        _at(7, 3, f"{D}voice DNA. semver souls. anti-slop.{R}")
+        _at(8, 3, f"{D}the layer hermes never had.{R}")
         sys.stdout.flush()
-        time.sleep(0.6)
+        time.sleep(0.4)
 
-        # --- Phase 2: Evolution ---
-        sprite_row = 22
-        sprite_col = 22
-
-        for i, (sprite, label) in enumerate(zip(TIERS, TIER_LABELS)):
-            # Clear previous sprite area
-            for r in range(sprite_row, sprite_row + 12):
-                _print_at(r, sprite_col - 2, " " * 20, "")
-
-            _draw_sprite(sprite_row, sprite_col, sprite)
-            _print_at(sprite_row + 10, sprite_col + 1, f"[ {label} ]", DIM)
+        # --- DB scaffold draws in fast ---
+        for i, line in enumerate(SCENE):
+            _at(9 + i, 1, line)
             sys.stdout.flush()
+            time.sleep(0.03)
 
-            if i < 4:
-                time.sleep(0.45)
-            else:
-                # Flash on final evolution
-                time.sleep(0.15)
-                _draw_sprite(sprite_row, sprite_col, sprite, BRIGHT)
-                sys.stdout.flush()
-                time.sleep(0.15)
-                _draw_sprite(sprite_row, sprite_col, sprite, GREEN)
-                sys.stdout.flush()
-                time.sleep(0.3)
+        time.sleep(0.15)
 
-        time.sleep(0.3)
+        # --- Sprite climbs up ---
+        prev_row = None
+        for stop_row, stop_col in CLIMB_STOPS:
+            # Erase previous sprite
+            if prev_row is not None:
+                for j in range(3):
+                    _at(prev_row + j, prev_col, "   ")
 
-        # --- Phase 3: DB scaffold builds up ---
-        db_start = 12
-        for i in range(1, len(DB_SCAFFOLD) + 1):
-            _draw_db(db_start, up_to=i)
-            sys.stdout.flush()
-            time.sleep(0.06)
+            # Draw ladder segment between stops
+            if prev_row is not None:
+                for lr in range(stop_row + 3, prev_row):
+                    _at(lr, stop_col, f"{D}│{R}")
+                    sys.stdout.flush()
+                    time.sleep(0.02)
 
-        time.sleep(0.3)
+            # Draw sprite at new position
+            for j, sline in enumerate(SPRITE):
+                _at(stop_row + j, stop_col, sline)
 
-        # --- Phase 4: Sprite climbs up through DB ---
-        positions = [30, 27, 24, 21, 18, 15]
-        for pos in positions:
-            # Clear old position
-            for r in range(pos + 3, pos + 12):
-                _print_at(r, sprite_col - 2, " " * 20, "")
-            _draw_sprite(pos, sprite_col, TIER_5)
-            sys.stdout.flush()
-            time.sleep(0.12)
-
-        # Clear label from evolution
-        _print_at(sprite_row + 10, sprite_col - 2, " " * 20, "")
-
-        time.sleep(0.2)
-
-        # --- Phase 5: Context drops ---
-        drops = [
-            (12, 3, "◆ soul"),
-            (12, 18, "◆ voice"),
-            (12, 34, "◆ memory"),
-            (12, 48, "◆ slop"),
-        ]
-        for _, dc, dlabel in drops:
-            _print_at(11, dc, dlabel, BRIGHT)
+            prev_row, prev_col = stop_row, stop_col
             sys.stdout.flush()
             time.sleep(0.15)
 
-        time.sleep(0.4)
+        time.sleep(0.1)
 
-        # --- Phase 6: Status readout ---
-        _print_at(30, 2, "━" * 54, GREEN)
+        # --- Context drops from top ---
+        drops = [
+            (8, 4, f"{B}◆{G}soul{R}"),
+            (8, 16, f"{B}◆{G}voice{R}"),
+            (8, 29, f"{B}◆{G}memory{R}"),
+            (8, 43, f"{B}◆{G}slop{R}"),
+        ]
+        for dr, dc, dlabel in drops:
+            _at(dr, dc, dlabel)
+            sys.stdout.flush()
+            time.sleep(0.08)
 
+        time.sleep(0.2)
+
+        # --- Move cursor below scene ---
+        _at(25, 1, "")
         sys.stdout.flush()
 
     finally:
-        sys.stdout.write(SHOW_CURSOR)
+        sys.stdout.write(SHOW)
         sys.stdout.flush()
 
-    # Move cursor below the animation
-    print(_goto(32, 1))
+    print()
 
 
 def boot_status(soul: str, voice: str, slop: str, dash: str, hermes: str):
-    """Print the status readout (after animation or standalone)."""
-    lines = [
-        f"  {BOLD}{GREEN}soul:{RESET}    {WHITE}{soul}{RESET}",
-        f"  {BOLD}{GREEN}voice:{RESET}   {WHITE}{voice}{RESET}",
-        f"  {BOLD}{GREEN}slop:{RESET}    {WHITE}{slop}{RESET}",
-        f"  {BOLD}{GREEN}dash:{RESET}    {WHITE}{dash}{RESET}",
-        f"  {BOLD}{GREEN}hermes:{RESET}  {WHITE}{hermes}{RESET}",
-    ]
-    print()
-    for line in lines:
-        print(line)
+    """Print status readout."""
+    print(f"  {BOLD}{G}soul:{R}    {W}{soul}{R}")
+    print(f"  {BOLD}{G}voice:{R}   {W}{voice}{R}")
+    print(f"  {BOLD}{G}slop:{R}    {W}{slop}{R}")
+    print(f"  {BOLD}{G}dash:{R}    {W}{dash}{R}")
+    print(f"  {BOLD}{G}hermes:{R}  {W}{hermes}{R}")
     print()
 
 
 def boot_static():
-    """Non-animated fallback for small terminals or piped output."""
+    """Non-animated fallback."""
+    print(TITLE)
+    print(f"  {D}voice DNA. semver souls. anti-slop.{R}")
+    print(f"  {D}the layer hermes never had.{R}")
     print()
-    for line in NIO_TITLE:
-        print(f"{BOLD}{GREEN}{line}{RESET}")
-    print()
-    print(f"{DIM}  voice DNA. semver souls. anti-slop.{RESET}")
-    print(f"{DIM}  the layer hermes never had.{RESET}")
-    print()
-    for sprite_line in TIER_5:
-        print(f"  {BOLD}{GREEN}{sprite_line}{RESET}")
+    for line in SCENE:
+        print(line)
     print()
