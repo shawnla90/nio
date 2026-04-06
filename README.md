@@ -11,10 +11,13 @@
 <p align="center">
   <a href="#install">Install</a> &bull;
   <a href="#what-nio-adds">Features</a> &bull;
+  <a href="#cli-first-no-apis">CLI-First</a> &bull;
   <a href="#quick-start">Quick Start</a> &bull;
   <a href="#architecture">Architecture</a> &bull;
   <a href="#souls">Souls</a> &bull;
   <a href="#anti-slop">Anti-Slop</a> &bull;
+  <a href="#why-sqlite">Why SQLite</a> &bull;
+  <a href="#persistent-memory">Memory</a> &bull;
   <a href="#team-mode">Teams</a> &bull;
   <a href="#license">License</a>
 </p>
@@ -24,6 +27,7 @@
   <img src="https://img.shields.io/badge/license-MIT-4EC373?style=flat-square" alt="MIT License" />
   <img src="https://img.shields.io/badge/hermes-plugin-4EC373?style=flat-square" alt="Hermes Plugin" />
   <img src="https://img.shields.io/badge/dashboard-localhost:4242-4EC373?style=flat-square" alt="Dashboard" />
+  <img src="https://img.shields.io/badge/claude_code-skill+hooks-4EC373?style=flat-square" alt="Claude Code" />
 </p>
 
 ---
@@ -84,6 +88,16 @@ claude code         no              yes (skill + hooks)
 ```
 
 Zero patches to the Nous Research fork. NIO installs as a Hermes plugin at `~/.hermes/hooks/nio/`.
+
+## CLI-first, no APIs
+
+NIO runs entirely on your machine. No cloud service. No telemetry. No account.
+
+SQLite is the single source of truth. Every session, every turn, every slop score lives in `~/.nio/nio.db`. You own the file. You can inspect it with any SQLite client, export it, back it up, or delete it.
+
+The CLI is the primary interface. The dashboard at `localhost:4242` is a viewer, not a controller. Every action the dashboard shows can be done from the terminal. Every metric it displays comes from the same DB you can query directly.
+
+Claude Code integration works the same way. NIO installs a skill and hooks that write to the same local DB. No sidecar process, no external endpoint. Your Claude Code sessions and your Hermes conversations share one metrics store, one soul, one voice.
 
 ## Quick start
 
@@ -271,6 +285,83 @@ nio antislop check|score|sync|list
 nio metrics show|export|team
 nio team init|join|sync|members|release
 nio dash [start|stop]
+```
+
+## Why SQLite
+
+NIO stores everything in a single SQLite database at `~/.nio/nio.db`.
+
+- **WAL mode**: Concurrent reads while the middleware writes. The dashboard queries metrics while Hermes records turns. No locks, no contention.
+- **Crash-safe**: WAL + ACID transactions mean a power failure mid-session does not corrupt your data. The last committed turn is always intact.
+- **Zero-config**: No database server. No connection strings. No Docker. `nio install` creates the file; that is the entire setup.
+- **Single file**: Back up your entire NIO history by copying one file. Restore it by putting it back. Move it to another machine. It just works.
+- **Append-only audit trail**: Every turn is a row. Every slop score is recorded. Nothing gets overwritten. You can query your full agent history with plain SQL.
+- **Schema migrations versioned**: `nio/core/db.py` tracks a `SCHEMA_VERSION`. Upgrades are idempotent ALTER TABLE statements, not destructive rebuilds.
+
+## Why modular
+
+NIO is a set of independent systems that compose, not a monolith.
+
+- **Souls are markdown + YAML**. Human-editable, diffable, version-controllable. No proprietary format. Your text editor is the soul editor.
+- **Voices are independent from souls**. A soul pins a voice at a specific version. Upgrade a voice without touching any soul. Swap voices across souls.
+- **Anti-slop registry generates validators**. One JSON file produces Python, TypeScript, and Markdown. Your web app and your agent use the same rules from the same source.
+- **Team mode is a directory convention**. Drop `.nio/team.toml` in a repo. Collaborators run `nio team join`. No server, no admin panel.
+- **Hermes plugin is zero-patch**. NIO installs as a hook. The Nous Research fork is unchanged. When Hermes ships updates, NIO stays compatible.
+- **Claude Code integration is a skill + hooks**. Same pattern. When Claude ships features, NIO wires them in through the existing hook system.
+
+## Persistent memory
+
+Sessions survive shutdown. New sessions carry context from previous ones.
+
+**Session resume chain:**
+
+```
+ended session
+  -> summarize (first user msg + last agent msg + task type + slop avg)
+  -> store as context_snapshot in new session row
+  -> inject summary into system prompt via nio_memory_context
+```
+
+Every new session knows what the previous session did, what it was working on, and how clean the output was. The chain is queryable: `sessions.resumed_from` links back to the parent session.
+
+**Memory bridge:**
+
+`nio setup memory` imports existing Hermes memories from `~/.hermes/memories/MEMORY.md` and `USER.md`. Paragraphs are split, deduplicated by SHA-256 hash, and stored in the `memory_context` table. `sync_back_to_hermes()` writes NIO context back to the Hermes memory files. Bidirectional. No data loss.
+
+## Data transparency
+
+**What gets recorded per turn:**
+
+```json
+{
+  "turn_id": "a1b2c3",
+  "session_id": "x9y8z7",
+  "turn_index": 3,
+  "user_msg": "fix the auth middleware",
+  "agent_msg": "I've updated the token validation...",
+  "latency_ms": 1847,
+  "slop_score": 94.2,
+  "slop_violations": [{"id": "em_dashes", "tier": "critical", "matches": 1}],
+  "tool_calls": ["Read", "Edit"],
+  "memory_hits": 2,
+  "created_at": "2026-04-05T22:30:00Z"
+}
+```
+
+**What does not get recorded**: file contents, environment variables, API keys, system prompts, anything outside the agent conversation flow.
+
+**Inspect your data:**
+
+```bash
+# Export all metrics as JSON
+nio metrics export --format json
+
+# Query the DB directly
+sqlite3 ~/.nio/nio.db "SELECT slop_score, created_at FROM turns ORDER BY created_at DESC LIMIT 10"
+
+# Delete everything
+rm ~/.nio/nio.db
+# NIO recreates the schema on next start. No orphaned state.
 ```
 
 ## Data
