@@ -319,6 +319,11 @@ def _compile_flags(flags_str: str) -> int:
     return flags
 
 
+def load_registry() -> list[dict]:
+    """Return the full anti-slop rule set (baked-in + any registry file overlay)."""
+    return _get_rules()
+
+
 def detect(text: str) -> list[dict]:
     """Detect slop patterns in text. Returns list of detection dicts."""
     detections = []

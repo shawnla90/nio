@@ -67,14 +67,14 @@ def list_rules():
     from rich.table import Table
 
     console = Console()
-    registry = load_registry()
+    rules = load_registry()
     table = Table(title="Anti-Slop Registry")
     table.add_column("ID", style="bold")
     table.add_column("Tier")
     table.add_column("Action")
     table.add_column("Description")
-    for rule in registry.get("rules", []):
-        table.add_row(rule["id"], rule["tier"], rule["action"], rule["description"])
+    for rule in rules:
+        table.add_row(rule["id"], rule["tier"], rule.get("action", "warn"), rule["description"])
     console.print(table)
 
 
