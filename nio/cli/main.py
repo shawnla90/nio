@@ -10,6 +10,7 @@ from nio.cli.cmd_team import app as team_app
 from nio.cli.cmd_dash import app as dash_app
 from nio.cli.cmd_install import app as install_app
 from nio.cli.cmd_setup import app as setup_app
+from nio.cli.cmd_cc import app as cc_app
 
 app = typer.Typer(
     name="nio",
@@ -25,6 +26,7 @@ app.add_typer(team_app, name="team", help="Team mode (init, join, sync, members,
 app.add_typer(dash_app, name="dash", help="Web dashboard (start, stop, open)")
 app.add_typer(install_app, name="install", help="Bootstrap NIO (install hooks, seed registry, start dashboard)")
 app.add_typer(setup_app, name="setup", help="Interactive setup wizard (mode, platforms, memory, verify)")
+app.add_typer(cc_app, name="cc", help="Claude Code session management (start, turn, end, status, context)")
 
 
 @app.command()
