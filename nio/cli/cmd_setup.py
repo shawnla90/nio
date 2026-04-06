@@ -135,10 +135,9 @@ def setup_platforms():
     for platform_key, info in PLATFORMS.items():
         probe = next(p for p in probes if p["platform"] == platform_key)
         if probe["configured"]:
-            console.print(f"  [green]{info['display']}[/green] already connected. [dim]Skipping.[/dim]")
-            continue
-
-        if not Confirm.ask(f"  Set up {info['display']}?", default=False):
+            if not Confirm.ask(f"  [green]{info['display']}[/green] is connected. Update token?", default=False):
+                continue
+        elif not Confirm.ask(f"  Set up {info['display']}?", default=False):
             continue
 
         # Special handling for WhatsApp
