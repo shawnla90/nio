@@ -35,46 +35,47 @@ async def index(request: Request):
     from nio.core.soul import get_active_soul
     from nio.core.voice import get_active_voice
 
-    return templates.TemplateResponse("index.html", {
-        "request": request,
-        "soul": get_active_soul() or "none",
-        "voice": get_active_voice() or "none",
-        "slop_avg": get_recent_slop_avg() or 0,
-    })
+    return templates.TemplateResponse(
+        request=request, name="index.html",
+        context={
+            "soul": get_active_soul() or "none",
+            "voice": get_active_voice() or "none",
+            "slop_avg": get_recent_slop_avg() or 0,
+        },
+    )
 
 
 @app.get("/souls/diff", response_class=HTMLResponse)
 async def soul_diff(request: Request, a: str = "", b: str = ""):
     """Soul diff viewer."""
-    return templates.TemplateResponse("soul_diff.html", {
-        "request": request,
-        "ref_a": a,
-        "ref_b": b,
-    })
+    return templates.TemplateResponse(
+        request=request, name="soul_diff.html",
+        context={"ref_a": a, "ref_b": b},
+    )
 
 
 @app.get("/metrics", response_class=HTMLResponse)
 async def metrics_page(request: Request):
     """Metrics explorer."""
-    return templates.TemplateResponse("metrics.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="metrics.html")
 
 
 @app.get("/team", response_class=HTMLResponse)
 async def team_page(request: Request):
     """Team activity."""
-    return templates.TemplateResponse("team.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="team.html")
 
 
 @app.get("/registry", response_class=HTMLResponse)
 async def registry_page(request: Request):
     """Registry browser."""
-    return templates.TemplateResponse("registry.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="registry.html")
 
 
 @app.get("/gateway", response_class=HTMLResponse)
 async def gateway_page(request: Request):
     """Gateway status."""
-    return templates.TemplateResponse("gateway.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="gateway.html")
 
 
 # --- API endpoints for HTMX ---
