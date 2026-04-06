@@ -40,15 +40,9 @@ def load_team_config() -> Optional[dict]:
     if not toml_path:
         return None
     try:
-        # Use tomllib (3.11+) or fallback to simple parsing
-        try:
-            import tomllib
-            with open(toml_path, "rb") as f:
-                return tomllib.load(f)
-        except ImportError:
-            import tomli
-            with open(toml_path, "rb") as f:
-                return tomli.load(f)
+        import tomllib
+        with open(toml_path, "rb") as f:
+            return tomllib.load(f)
     except Exception:
         return None
 

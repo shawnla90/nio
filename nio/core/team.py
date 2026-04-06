@@ -108,13 +108,9 @@ def join_team(repo_url: str) -> dict:
             raise FileNotFoundError("No .nio/team.toml found in repo")
 
         # Parse team config
-        try:
-            import tomllib
-            with open(team_toml, "rb") as f:
-                config = tomllib.load(f)
-        except ImportError:
-            # Fallback: simple key extraction
-            config = _parse_toml_simple(team_toml.read_text())
+        import tomllib
+        with open(team_toml, "rb") as f:
+            config = tomllib.load(f)
 
         team_id = config.get("team", {}).get("id", "unknown")
         soul_id = config.get("soul", {}).get("id", "")
