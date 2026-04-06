@@ -1,0 +1,14 @@
+{
+  "description": "NIO hooks for Claude Code settings.json integration",
+  "note": "These hooks are injected into ~/.claude/settings.json by `nio install`",
+  "hooks": {
+    "PreToolCall": {
+      "description": "Load NIO soul context before tool execution",
+      "enabled": true
+    },
+    "PostToolCall": {
+      "description": "Run anti-slop validation and metrics capture after tool output",
+      "enabled": true
+    }
+  }
+}

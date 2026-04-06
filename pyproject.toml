@@ -1,0 +1,64 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "nio-agent"
+version = "0.1.0"
+description = "The layer Hermes never had. Voice DNA, semver souls, anti-slop, live dashboard."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+authors = [
+    { name = "Shawn", email = "shawn@shawnos.ai" },
+]
+keywords = ["agent", "claude", "hermes", "voice-dna", "anti-slop"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries",
+]
+dependencies = [
+    "typer>=0.12.0",
+    "rich>=13.0.0",
+    "pyyaml>=6.0",
+    "python-frontmatter>=1.1.0",
+    "fastapi>=0.111.0",
+    "uvicorn[standard]>=0.30.0",
+    "websockets>=12.0",
+    "jinja2>=3.1.0",
+    "chart-js-python>=0.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.4.0",
+]
+tui = [
+    "textual>=0.60.0",
+]
+
+[project.scripts]
+nio = "nio.cli.main:app"
+
+[project.urls]
+Homepage = "https://github.com/shawnla90/nio"
+Repository = "https://github.com/shawnla90/nio"
+Issues = "https://github.com/shawnla90/nio/issues"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

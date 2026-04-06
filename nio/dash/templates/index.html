@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NIO Dashboard</title>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="https://unpkg.com/alpinejs@3.14.0" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body class="dark">
+    <nav>
+        <div class="nav-brand">NIO</div>
+        <div class="nav-links">
+            <a href="/" class="active">Now Playing</a>
+            <a href="/souls/diff">Soul Diff</a>
+            <a href="/metrics">Metrics</a>
+            <a href="/team">Team</a>
+            <a href="/registry">Registry</a>
+            <a href="/gateway">Gateway</a>
+        </div>
+    </nav>
+
+    <main>
+        <section class="hero-cards">
+            <div class="card">
+                <div class="card-label">Active Soul</div>
+                <div class="card-value">{{ soul }}</div>
+            </div>
+            <div class="card">
+                <div class="card-label">Voice</div>
+                <div class="card-value">{{ voice }}</div>
+            </div>
+            <div class="card slop-card">
+                <div class="card-label">Slop Score (24h avg)</div>
+                <div class="card-value" id="slop-gauge">{{ "%.1f"|format(slop_avg) }}/100</div>
+            </div>
+        </section>
+
+        <section class="feed">
+            <h2>Recent Turns</h2>
+            <div id="turn-feed"
+                 hx-get="/api/turns/recent?limit=10"
+                 hx-trigger="load, every 5s"
+                 hx-swap="innerHTML">
+                <p class="dim">Loading...</p>
+            </div>
+        </section>
+    </main>
+
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

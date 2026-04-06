@@ -1,0 +1,134 @@
+"""NIO Dashboard: FastAPI + HTMX + Alpine + Chart.js.
+
+Serves localhost:4242. No npm build step. Single Python process.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+
+STATIC_DIR = Path(__file__).parent / "static"
+TEMPLATES_DIR = Path(__file__).parent / "templates"
+
+app = FastAPI(title="NIO Dashboard", docs_url=None, redoc_url=None)
+
+if STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ok", "version": "0.1.0"}
+
+
+@app.get("/", response_class=HTMLResponse)
+async def index(request: Request):
+    """Now Playing: the home page hero."""
+    from nio.core.soul import get_active_soul
+    from nio.core.voice import get_active_voice
+    from nio.core.metrics import get_recent_slop_avg
+
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "soul": get_active_soul() or "none",
+        "voice": get_active_voice() or "none",
+        "slop_avg": get_recent_slop_avg() or 0,
+    })
+
+
+@app.get("/souls/diff", response_class=HTMLResponse)
+async def soul_diff(request: Request, a: str = "", b: str = ""):
+    """Soul diff viewer."""
+    return templates.TemplateResponse("soul_diff.html", {
+        "request": request,
+        "ref_a": a,
+        "ref_b": b,
+    })
+
+
+@app.get("/metrics", response_class=HTMLResponse)
+async def metrics_page(request: Request):
+    """Metrics explorer."""
+    return templates.TemplateResponse("metrics.html", {"request": request})
+
+
+@app.get("/team", response_class=HTMLResponse)
+async def team_page(request: Request):
+    """Team activity."""
+    return templates.TemplateResponse("team.html", {"request": request})
+
+
+@app.get("/registry", response_class=HTMLResponse)
+async def registry_page(request: Request):
+    """Registry browser."""
+    return templates.TemplateResponse("registry.html", {"request": request})
+
+
+@app.get("/gateway", response_class=HTMLResponse)
+async def gateway_page(request: Request):
+    """Gateway status."""
+    return templates.TemplateResponse("gateway.html", {"request": request})
+
+
+# --- API endpoints for HTMX ---
+
+@app.get("/api/metrics/recent")
+async def api_recent_metrics(window: str = "7d"):
+    from nio.core.metrics import query_metrics
+    return JSONResponse(query_metrics(window=window))
+
+
+@app.get("/api/turns/recent")
+async def api_recent_turns(limit: int = 10):
+    """Return the most recent turns for the live feed."""
+    from nio.core.db import get_connection
+
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT turn_id, session_id, slop_score, latency_ms, slop_violations, created_at "
+        "FROM turns ORDER BY created_at DESC LIMIT ?",
+        (limit,),
+    ).fetchall()
+    conn.close()
+
+    import json
+    turns = []
+    for r in rows:
+        turns.append({
+            "turn_id": r[0],
+            "session_id": r[1],
+            "slop_score": r[2],
+            "latency_ms": r[3],
+            "violations": json.loads(r[4]) if r[4] else [],
+            "created_at": r[5],
+        })
+    return JSONResponse(turns)
+
+
+@app.get("/api/souls")
+async def api_souls():
+    from nio.core.soul import list_souls
+    return JSONResponse(list_souls())
+
+
+@app.get("/api/voices")
+async def api_voices():
+    from nio.core.voice import list_voices
+    return JSONResponse(list_voices())
+
+
+def main():
+    """Run the dashboard server."""
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=4242, log_level="warning")
+
+
+if __name__ == "__main__":
+    main()

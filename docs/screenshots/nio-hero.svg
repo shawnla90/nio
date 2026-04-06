@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="520" viewBox="0 0 900 520">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&amp;display=swap');
+      text { font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="520" rx="12" fill="#0D1117"/>
+
+  <!-- Terminal chrome -->
+  <rect width="900" height="36" rx="12" fill="#161B22"/>
+  <rect x="0" y="24" width="900" height="12" fill="#161B22"/>
+  <circle cx="20" cy="18" r="6" fill="#F85149"/>
+  <circle cx="40" cy="18" r="6" fill="#E3B341"/>
+  <circle cx="60" cy="18" r="6" fill="#4EC373"/>
+  <text x="450" y="22" text-anchor="middle" fill="#8B949E" font-size="12" font-weight="400">~/.nio</text>
+
+  <!-- Divider line -->
+  <line x1="0" y1="36" x2="900" y2="36" stroke="#30363D" stroke-width="1"/>
+
+  <!-- NIO title -->
+  <text x="40" y="76" fill="#4EC373" font-size="36" font-weight="700">NIO</text>
+  <text x="135" y="76" fill="#8B949E" font-size="14" font-weight="400">v0.1.0</text>
+  <text x="40" y="98" fill="#E6EDF3" font-size="13" font-weight="400">voice DNA. semver souls. anti-slop. the layer hermes never had.</text>
+
+  <!-- Separator -->
+  <line x1="40" y1="112" x2="860" y2="112" stroke="#30363D" stroke-width="1"/>
+
+  <!-- DROP ZONE: Three input channels -->
+  <!-- Soul -->
+  <rect x="40" y="128" width="245" height="90" rx="6" fill="#161B22" stroke="#30363D" stroke-width="1"/>
+  <text x="56" y="150" fill="#4EC373" font-size="11" font-weight="700">SOULS</text>
+  <text x="56" y="168" fill="#8B949E" font-size="10">nio-core@0.2.0</text>
+  <text x="56" y="182" fill="#484F58" font-size="10">voice: shawn-builder@1.0.0</text>
+  <text x="56" y="196" fill="#484F58" font-size="10">slop_floor: 92 | targets: set</text>
+  <text x="56" y="210" fill="#484F58" font-size="10">derived_from: null</text>
+
+  <!-- Voice -->
+  <rect x="305" y="128" width="280" height="90" rx="6" fill="#161B22" stroke="#30363D" stroke-width="1"/>
+  <text x="321" y="150" fill="#4EC373" font-size="11" font-weight="700">VOICE DNA</text>
+  <text x="321" y="168" fill="#8B949E" font-size="10">shawn-builder | enterprise-neutral</text>
+  <text x="321" y="182" fill="#484F58" font-size="10">tone: casual | authority: earned</text>
+  <text x="321" y="196" fill="#484F58" font-size="10">banned: 11 phrases | modes: 4</text>
+  <text x="321" y="210" fill="#484F58" font-size="10">priority: substance > authenticity</text>
+
+  <!-- Anti-slop -->
+  <rect x="605" y="128" width="255" height="90" rx="6" fill="#161B22" stroke="#30363D" stroke-width="1"/>
+  <text x="621" y="150" fill="#4EC373" font-size="11" font-weight="700">ANTI-SLOP</text>
+  <text x="621" y="168" fill="#8B949E" font-size="10">29 patterns | 3 tiers</text>
+  <text x="621" y="182" fill="#484F58" font-size="10">critical: 20 | context: 5</text>
+  <text x="621" y="196" fill="#484F58" font-size="10">natural: 4 (allowed)</text>
+  <text x="621" y="210" fill="#484F58" font-size="10">codegen: python + typescript</text>
+
+  <!-- Drop arrows -->
+  <text x="162" y="234" text-anchor="middle" fill="#4EC373" font-size="16">|</text>
+  <text x="162" y="246" text-anchor="middle" fill="#4EC373" font-size="16">v</text>
+  <text x="445" y="234" text-anchor="middle" fill="#4EC373" font-size="16">|</text>
+  <text x="445" y="246" text-anchor="middle" fill="#4EC373" font-size="16">v</text>
+  <text x="732" y="234" text-anchor="middle" fill="#4EC373" font-size="16">|</text>
+  <text x="732" y="246" text-anchor="middle" fill="#4EC373" font-size="16">v</text>
+
+  <!-- Middleware bar -->
+  <rect x="40" y="256" width="820" height="36" rx="6" fill="#1a2332" stroke="#4EC373" stroke-width="1"/>
+  <text x="56" y="279" fill="#4EC373" font-size="12" font-weight="700">[middleware]</text>
+  <text x="175" y="279" fill="#E6EDF3" font-size="11">gateway:startup</text>
+  <text x="340" y="279" fill="#8B949E" font-size="11">-></text>
+  <text x="365" y="279" fill="#E6EDF3" font-size="11">session:start</text>
+  <text x="500" y="279" fill="#8B949E" font-size="11">-></text>
+  <text x="525" y="279" fill="#E6EDF3" font-size="11">agent:start</text>
+  <text x="640" y="279" fill="#8B949E" font-size="11">-></text>
+  <text x="665" y="279" fill="#E6EDF3" font-size="11">agent:end</text>
+  <text x="770" y="279" fill="#8B949E" font-size="11">-></text>
+  <text x="795" y="279" fill="#E6EDF3" font-size="11">score</text>
+
+  <!-- Drop to DB -->
+  <text x="450" y="306" text-anchor="middle" fill="#4EC373" font-size="16">|</text>
+  <text x="450" y="318" text-anchor="middle" fill="#4EC373" font-size="16">v</text>
+
+  <!-- DB Layer -->
+  <rect x="40" y="328" width="510" height="110" rx="6" fill="#161B22" stroke="#30363D" stroke-width="1"/>
+  <text x="56" y="350" fill="#4EC373" font-size="11" font-weight="700">~/.nio/nio.db</text>
+  <text x="180" y="350" fill="#484F58" font-size="10">SQLite + WAL</text>
+
+  <!-- DB Tables as mini cards -->
+  <rect x="56" y="360" width="110" height="24" rx="3" fill="#0D1117" stroke="#30363D" stroke-width="1"/>
+  <text x="66" y="376" fill="#E6EDF3" font-size="9">sessions</text>
+
+  <rect x="176" y="360" width="110" height="24" rx="3" fill="#0D1117" stroke="#30363D" stroke-width="1"/>
+  <text x="186" y="376" fill="#E6EDF3" font-size="9">turns</text>
+
+  <rect x="296" y="360" width="110" height="24" rx="3" fill="#0D1117" stroke="#30363D" stroke-width="1"/>
+  <text x="306" y="376" fill="#E6EDF3" font-size="9">soul_versions</text>
+
+  <rect x="416" y="360" width="120" height="24" rx="3" fill="#0D1117" stroke="#30363D" stroke-width="1"/>
+  <text x="426" y="376" fill="#E6EDF3" font-size="9">voice_versions</text>
+
+  <rect x="56" y="392" width="110" height="24" rx="3" fill="#0D1117" stroke="#30363D" stroke-width="1"/>
+  <text x="66" y="408" fill="#E6EDF3" font-size="9">team_state</text>
+
+  <!-- Metrics sample -->
+  <rect x="176" y="392" width="360" height="24" rx="3" fill="#0D1117" stroke="#30363D" stroke-width="1"/>
+  <text x="186" y="408" fill="#484F58" font-size="9">idx: turns_session | turns_created | sessions_soul</text>
+
+  <!-- Dashboard panel -->
+  <rect x="570" y="328" width="290" height="110" rx="6" fill="#161B22" stroke="#30363D" stroke-width="1"/>
+  <text x="586" y="350" fill="#4EC373" font-size="11" font-weight="700">localhost:4242</text>
+  <text x="735" y="350" fill="#484F58" font-size="10">live</text>
+
+  <!-- Slop gauge -->
+  <text x="586" y="372" fill="#8B949E" font-size="10">slop score</text>
+  <rect x="586" y="378" width="180" height="10" rx="3" fill="#0D1117"/>
+  <rect x="586" y="378" width="169" height="10" rx="3" fill="#4EC373"/>
+  <text x="778" y="387" fill="#E6EDF3" font-size="10" font-weight="700">94</text>
+
+  <!-- Latency gauge -->
+  <text x="586" y="406" fill="#8B949E" font-size="10">p50 latency</text>
+  <rect x="586" y="412" width="180" height="10" rx="3" fill="#0D1117"/>
+  <rect x="586" y="412" width="72" height="10" rx="3" fill="#58A6FF"/>
+  <text x="670" y="421" fill="#E6EDF3" font-size="10">1.2s</text>
+
+  <!-- Footer -->
+  <line x1="40" y1="456" x2="860" y2="456" stroke="#30363D" stroke-width="1"/>
+  <text x="40" y="478" fill="#484F58" font-size="10">$ nio status</text>
+  <text x="40" y="494" fill="#4EC373" font-size="10">soul:</text>
+  <text x="85" y="494" fill="#E6EDF3" font-size="10">nio-core@0.2.0</text>
+  <text x="250" y="494" fill="#4EC373" font-size="10">voice:</text>
+  <text x="300" y="494" fill="#E6EDF3" font-size="10">shawn-builder@1.0.0</text>
+  <text x="500" y="494" fill="#4EC373" font-size="10">slop:</text>
+  <text x="540" y="494" fill="#E6EDF3" font-size="10">94/100</text>
+  <text x="620" y="494" fill="#4EC373" font-size="10">dash:</text>
+  <text x="660" y="494" fill="#E6EDF3" font-size="10">:4242</text>
+  <text x="730" y="494" fill="#4EC373" font-size="10">hermes:</text>
+  <text x="790" y="494" fill="#E6EDF3" font-size="10">hooked</text>
+</svg>

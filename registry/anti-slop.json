@@ -1,0 +1,512 @@
+{
+  "schema_version": 1,
+  "generated_by": "manual",
+  "sources": [
+    "shawn-gtme-os/skills/tier-1-voice-dna/anti-slop.md",
+    "shawn-gtme-os/neo/core/anti_slop_validator.py",
+    "treadit/src/lib/ai/anti-slop.ts"
+  ],
+  "rules": [
+    {
+      "id": "em_dashes",
+      "tier": "critical",
+      "description": "Em-dash abuse. Delete all. Use periods, commas, or restructure.",
+      "matcher": { "type": "regex", "pattern": "\\u2014+", "flags": "g" },
+      "action": "replace",
+      "replacement": ". ",
+      "severity": 3,
+      "examples": {
+        "bad": ["I built it \u2014 and it worked", "The tool \u2014 which I use daily \u2014 is great"],
+        "good": ["I built it. It worked.", "The tool I use daily is great."]
+      },
+      "tags": ["punctuation", "formatting"]
+    },
+    {
+      "id": "en_dashes",
+      "tier": "critical",
+      "description": "En-dash abuse. Same treatment as em-dashes.",
+      "matcher": { "type": "regex", "pattern": "\\u2013+", "flags": "g" },
+      "action": "replace",
+      "replacement": ". ",
+      "severity": 2,
+      "examples": {
+        "bad": ["Monday \u2013 Friday"],
+        "good": ["Monday to Friday"]
+      },
+      "tags": ["punctuation", "formatting"]
+    },
+    {
+      "id": "authority_signaling",
+      "tier": "critical",
+      "description": "Authority signaling phrases. Delete the setup, state directly.",
+      "matcher": {
+        "type": "regex",
+        "pattern": "\\b(?:[Tt]he uncomfortable truth|[Ll]et me be clear|[Hh]ere'?s what nobody tells you|[Tt]he hard truth is|[Hh]ere'?s the reality|[Ww]hat most people miss(?:\\s+is)?)\\b",
+        "flags": "gi"
+      },
+      "action": "delete",
+      "replacement": "",
+      "severity": 3,
+      "examples": {
+        "bad": ["The uncomfortable truth about GTM is...", "Let me be clear: this works."],
+        "good": ["GTM has a problem...", "This works."]
+      },
+      "tags": ["voice", "authority"]
+    },
+    {
+      "id": "narrator_setup",
+      "tier": "critical",
+      "description": "Narrator setup lines. Delete the setup, start with the actual point.",
+      "matcher": {
+        "type": "regex",
+        "pattern": "\\b(?:[Hh]ere'?s the thing about|[Hh]ere'?s where it gets interesting|[Hh]ere'?s the real (?:value|story|reason)|[Hh]ere'?s the actual |[Tt]he real (?:story|question|issue) is)\\b",
+        "flags": "gi"
+      },
+      "action": "delete",
+      "replacement": "",
+      "severity": 3,
+      "examples": {
+        "bad": ["Here's the thing about Clay tables...", "Here's where it gets interesting."],
+        "good": ["Clay tables let you...", "The scoring model flipped."]
+      },
+      "tags": ["voice", "drama"]
+    },
+    {
+      "id": "dramatic_rhetorical",
+      "tier": "critical",
+      "description": "Dramatic rhetorical framing. State what happened. Let the reader feel it.",
+      "matcher": {
+        "type": "regex",
+        "pattern": "\\b(?:[Bb]ut here'?s the part where|[Aa]nd that'?s when it clicked|[Ww]ant to know the crazy part)\\b",
+        "flags": "gi"
+      },
+      "action": "delete",
+      "replacement": "",
+      "severity": 2,
+      "examples": {
+        "bad": ["But here's the part where it gets real.", "And that's when it clicked."],
+        "good": ["The pipeline broke at step 3.", "I saw the pattern."]
+      },
+      "tags": ["voice", "drama"]
+    },
+    {
+      "id": "three_parallel_sentences",
+      "tier": "critical",
+      "description": "Three parallel dramatic sentences. One direct statement lands harder. Cut to one.",
+      "matcher": {
+        "type": "structural",
+        "note": "Three short parallel sentences with similar structure. Hard to regex reliably. Flagged by manual review or LLM-based detection."
+      },
+      "action": "warn",
+      "severity": 2,
+      "examples": {
+        "bad": ["You can't see it. You can't copy-paste it away. You have to know it exists."],
+        "good": ["You have to know it exists."]
+      },
+      "tags": ["structure", "repetition"]
+    },
+    {
+      "id": "bookend_summary",
+      "tier": "critical",
+      "description": "Opening thesis restated at the end. Real thinking goes somewhere new by the end.",
+      "matcher": {
+        "type": "regex",
+        "pattern": "\\b[Ii]n (?:summary|conclusion|short),?\\s",
+        "flags": "gi"
+      },
+      "action": "delete",
+      "replacement": "",
+      "severity": 2,
+      "examples": {
+        "bad": ["In summary, the pipeline works.", "In conclusion, we shipped it."],
+        "good": ["The pipeline works. Next: scoring.", "We shipped it. Here's what broke."]
+      },
+      "tags": ["structure", "redundancy"]
+    },
+    {
+      "id": "self_branded_concepts",
+      "tier": "critical",
+      "description": "Self-branded concepts. Just explain it.",
+      "matcher": {
+        "type": "regex",
+        "pattern": "\\b(?:[Tt]his is what [Ii] call|[Ii] like to call this|[Ww]hat [Ii] refer to as)\\b",
+        "flags": "gi"
+      },
+      "action": "delete",
+      "replacement": "",
+      "severity": 2,
+      "examples": {
+        "bad": ["This is what I call the 'signal stack'."],
+        "good": ["The signal stack pulls from three sources."]
+      },
+      "tags": ["voice", "ego"]
+    },
+    {
+      "id": "artificial_drama",
+      "tier": "critical",
+      "description": "Artificial drama sentences. Show why it's hard with a specific example.",
+      "matcher": {
+        "type": "regex",
+        "pattern": "[Tt]he shift sounds simple\\.\\s*[Ii]t'?s not\\.|[Ss]ounds easy\\.\\s*[Ii]t isn'?t\\.",
+        "flags": "g"
+      },
+      "action": "warn",
+      "severity": 2,
+      "examples": {
+        "bad": ["The shift sounds simple. It's not."],
+        "good": ["The shift took 3 weeks because the schema migration broke twice."]
+      },
+      "tags": ["voice", "drama"]
+    },
+    {
+      "id": "colon_lists",
+      "tier": "critical",
+      "description": "Colon-listed everything. Reads like a PowerPoint slide. Write natural sentences.",
+      "matcher": {
+        "type": "regex",
+        "pattern": "\\b(?:the )?(?:result|impact|answer|truth|lesson|takeaway):",
+        "flags": "gi"
+      },
+      "action": "warn",
+      "severity": 2,
+      "examples": {
+        "bad": ["the result: better data. the impact: faster sales."],
+        "good": ["Better data meant faster sales."]
+      },
+      "tags": ["formatting", "structure"]
+    },
+    {
+      "id": "humble_brag",
+      "tier": "critical",
+      "description": "Humble brag disclaimer. Share your take or don't. The disclaimer makes it worse.",
+      "matcher": {
+        "type": "regex",
+        "pattern": "\\b(?:[Ii] don'?t have all the answers,? but|[Ii]'?m no expert,? but|[Nn]ot to brag,? but)\\b",
+        "flags": "gi"
+      },
+      "action": "delete",
+      "replacement": "",
+      "severity": 2,
+      "examples": {
+        "bad": ["I don't have all the answers, but here's what worked."],
+        "good": ["Here's what worked."]
+      },
+      "tags": ["voice", "ego"]
+    },
+    {
+      "id": "hype_words",
+      "tier": "critical",
+      "description": "Lazy energy words that say nothing. Replace with what actually changed or happened.",
+      "matcher": {
+        "type": "regex",
+        "pattern": "\\b(?:game[\\s-]?changer|chaos|unleash|supercharge|next[\\s-]?level|revolutionize|transform(?:ative)?)\\b",
+        "flags": "gi"
+      },
+      "action": "delete",
+      "replacement": "",
+      "severity": 3,
+      "examples": {
+        "bad": ["This tool is a game changer.", "Unleash your pipeline."],
+        "good": ["This tool cut our enrichment time from 4 hours to 20 minutes.", "Your pipeline runs itself."]
+      },
+      "tags": ["voice", "hype"]
+    },
+    {
+      "id": "no_fluff_disclaimers",
+      "tier": "critical",
+      "description": "Saying 'no fluff' is itself fluff. If the content has no fluff, the reader will know.",
+      "matcher": {
+        "type": "regex",
+        "pattern": "\\b[Nn]o (?:fluff|BS|bs|b\\.s\\.|nonsense)\\b",
+        "flags": "gi"
+      },
+      "action": "delete",
+      "replacement": "",
+      "severity": 2,
+      "examples": {
+        "bad": ["No fluff, just tactics.", "No BS guide to Clay."],
+        "good": ["Tactics.", "A guide to Clay."]
+      },
+      "tags": ["voice", "disclaimers"]
+    },
+    {
+      "id": "nada_filler",
+      "tier": "critical",
+      "description": "Performative emphasis that reads as AI padding. Cut it.",
+      "matcher": {
+        "type": "regex",
+        "pattern": "\\bnada\\b",
+        "flags": "gi"
+      },
+      "action": "delete",
+      "replacement": "",
+      "severity": 1,
+      "examples": {
+        "bad": ["No templates, nada.", "Nada. Just vibes."],
+        "good": ["No templates.", "Just vibes."]
+      },
+      "tags": ["voice", "filler"]
+    },
+    {
+      "id": "sycophantic_openers",
+      "tier": "critical",
+      "description": "Sycophantic openers that signal AI-generated responses.",
+      "matcher": {
+        "type": "regex",
+        "pattern": "(?:[Gg]reat question!|[Aa]bsolutely!|[Dd]efinitely!|[Oo]f course!)",
+        "flags": "g"
+      },
+      "action": "delete",
+      "replacement": "",
+      "severity": 2,
+      "examples": {
+        "bad": ["Great question! Here's how...", "Absolutely! The way I see it..."],
+        "good": ["Here's how...", "The way I see it..."]
+      },
+      "tags": ["voice", "ai-tell"]
+    },
+    {
+      "id": "self_referential_openers",
+      "tier": "critical",
+      "description": "Opens with YOU instead of VALUE. The reader doesn't care about your process.",
+      "matcher": {
+        "type": "regex",
+        "pattern": "^(?:[Dd]ropping|[Ss]haring) (?:this|these|a|my|something)\\b",
+        "flags": "gm"
+      },
+      "action": "warn",
+      "severity": 1,
+      "examples": {
+        "bad": ["Dropping this resource for anyone who needs it.", "Sharing something I built last week."],
+        "good": ["Resource: how to score ICP fit in Clay.", "I built a scoring model last week. It does X."]
+      },
+      "tags": ["voice", "opener"]
+    },
+    {
+      "id": "announcement_without_value",
+      "tier": "critical",
+      "description": "Announcement-style title with no value proposition.",
+      "matcher": {
+        "type": "regex",
+        "pattern": "\\bis (?:live|here|out|ready)\\.\\s*$",
+        "flags": "gim"
+      },
+      "action": "warn",
+      "severity": 1,
+      "examples": {
+        "bad": ["My new course is live."],
+        "good": ["My new course teaches you to build Clay tables from scratch in 2 hours."]
+      },
+      "tags": ["voice", "value-prop"]
+    },
+    {
+      "id": "false_drama_ellipsis",
+      "tier": "critical",
+      "description": "Ellipsis used to build false suspense before a common word.",
+      "matcher": {
+        "type": "regex",
+        "pattern": "\\.{3,}\\s*(?:here|and|but|the)",
+        "flags": "gi"
+      },
+      "action": "replace",
+      "replacement": ". ",
+      "severity": 2,
+      "examples": {
+        "bad": ["I tried everything... and then it worked."],
+        "good": ["I tried everything. Then it worked."]
+      },
+      "tags": ["punctuation", "drama"]
+    },
+    {
+      "id": "hedging_transitions",
+      "tier": "critical",
+      "description": "Overused transition phrases that signal AI-generated structure.",
+      "matcher": {
+        "type": "regex",
+        "pattern": "\\b[Tt]hat (?:said|being said),?\\s",
+        "flags": "g"
+      },
+      "action": "delete",
+      "replacement": "",
+      "severity": 1,
+      "examples": {
+        "bad": ["That said, the tool works.", "That being said, I'd still use it."],
+        "good": ["The tool works.", "I'd still use it."]
+      },
+      "tags": ["voice", "transitions"]
+    },
+    {
+      "id": "filler_transitions",
+      "tier": "critical",
+      "description": "Filler transition phrases that add nothing.",
+      "matcher": {
+        "type": "regex",
+        "pattern": "\\b[Ww]ithout further ado\\b",
+        "flags": "g"
+      },
+      "action": "delete",
+      "replacement": "",
+      "severity": 1,
+      "examples": {
+        "bad": ["Without further ado, here's the workflow."],
+        "good": ["Here's the workflow."]
+      },
+      "tags": ["voice", "filler"]
+    },
+    {
+      "id": "engagement_bait",
+      "tier": "context",
+      "description": "Engagement bait endings. Generally avoid, but OK on meme posts.",
+      "matcher": {
+        "type": "regex",
+        "pattern": "\\b(?:[Ss]o here'?s my question for you|[Ww]hat do you think\\?|[Cc]urious to hear your thoughts|[Dd]rop a comment)\\b",
+        "flags": "gi"
+      },
+      "action": "warn",
+      "severity": 1,
+      "examples": {
+        "bad": ["So here's my question for you: what's your stack?"],
+        "good": ["What's your stack? Drop it in the comments."]
+      },
+      "tags": ["voice", "engagement"],
+      "context_note": "Allow on meme/social posts where audience participation is the point."
+    },
+    {
+      "id": "bullets_for_arguments",
+      "tier": "context",
+      "description": "Arguments belong in prose. Bullets for execution, prose for reasoning.",
+      "matcher": {
+        "type": "structural",
+        "note": "Bulleted list used to present reasoning or arguments instead of prose. Bullets are fine for steps, tools, and specs."
+      },
+      "action": "warn",
+      "severity": 1,
+      "examples": {
+        "bad": ["Why this matters:\n- It saves time\n- It reduces errors\n- It scales better"],
+        "good": ["This saves time because the enrichment runs in parallel. Fewer manual steps means fewer errors. And it scales to 10K rows without changes."]
+      },
+      "tags": ["structure", "formatting"]
+    },
+    {
+      "id": "false_dichotomies",
+      "tier": "context",
+      "description": "False dichotomies. Avoid, but legitimate old-vs-new contrasts are fine.",
+      "matcher": {
+        "type": "regex",
+        "pattern": "[Ii]t'?s not \\w+,\\s*it'?s \\w+",
+        "flags": "g"
+      },
+      "action": "warn",
+      "severity": 1,
+      "examples": {
+        "bad": ["It's not luck, it's strategy."],
+        "good": ["Strategy compounds. Luck doesn't."]
+      },
+      "tags": ["voice", "framing"],
+      "context_note": "Allow when contrasting old way vs. new way (manual SDR grind vs. automated workflow)."
+    },
+    {
+      "id": "bold_headers_as_transitions",
+      "tier": "context",
+      "description": "Headers for navigation only. LinkedIn formatting is whitespace-driven.",
+      "matcher": {
+        "type": "regex",
+        "pattern": "\\*\\*[^*]+\\*\\*(?=\\s*[A-Z])",
+        "flags": "g"
+      },
+      "action": "warn",
+      "severity": 1,
+      "examples": {
+        "bad": ["**The Problem** Most GTM teams..."],
+        "good": ["Most GTM teams..."]
+      },
+      "tags": ["formatting", "structure"]
+    },
+    {
+      "id": "quotation_overuse",
+      "tier": "context",
+      "description": "Quoted phrases that don't need quotes. Write them as plain text.",
+      "matcher": {
+        "type": "regex",
+        "pattern": "\"[^\"]{5,}\"",
+        "flags": "g"
+      },
+      "action": "warn",
+      "severity": 1,
+      "examples": {
+        "bad": ["I call this a \"growth loop\"."],
+        "good": ["I call this a growth loop."]
+      },
+      "tags": ["formatting", "voice"],
+      "context_note": "Allow for actual quotations from other people or named concepts."
+    },
+    {
+      "id": "ellipses_trailing",
+      "tier": "natural",
+      "description": "Ellipses for trailing thoughts. Part of natural voice.",
+      "matcher": {
+        "type": "regex",
+        "pattern": "\\.{3}",
+        "flags": "g"
+      },
+      "action": "allow",
+      "severity": 0,
+      "examples": {
+        "bad": [],
+        "good": ["true story. ...", "it feels... prehistoric"]
+      },
+      "tags": ["voice", "natural"]
+    },
+    {
+      "id": "workflow_arrows",
+      "tier": "natural",
+      "description": "Arrows for workflow steps and progression. Part of natural voice.",
+      "matcher": {
+        "type": "regex",
+        "pattern": "(?:-->|\u27a1\ufe0f|\u2192)",
+        "flags": "g"
+      },
+      "action": "allow",
+      "severity": 0,
+      "examples": {
+        "bad": [],
+        "good": ["Clay --> HubSpot --> Instantly", "step 1 \u27a1\ufe0f step 2"]
+      },
+      "tags": ["formatting", "natural"]
+    },
+    {
+      "id": "emoji_section_markers",
+      "tier": "natural",
+      "description": "Emoji section markers for structuring workflow walkthroughs.",
+      "matcher": {
+        "type": "regex",
+        "pattern": "[\u2705\ud83d\udd27\ud83d\udd17\ud83e\udde0\ud83d\udd77\ufe0f]",
+        "flags": "g"
+      },
+      "action": "allow",
+      "severity": 0,
+      "examples": {
+        "bad": [],
+        "good": ["\u2705 Step 1: Pull enrichment", "\ud83e\udde0 The insight here is..."]
+      },
+      "tags": ["formatting", "natural"]
+    },
+    {
+      "id": "directional_heres",
+      "tier": "natural",
+      "description": "Directional 'here's how/the play' openers. Part of natural voice, not narrator setup.",
+      "matcher": {
+        "type": "regex",
+        "pattern": "\\b(?:[Hh]ere'?s how|[Hh]ere'?s the play)\\b",
+        "flags": "g"
+      },
+      "action": "allow",
+      "severity": 0,
+      "examples": {
+        "bad": [],
+        "good": ["Here's how I set up the Clay table.", "Here's the play for Q2."]
+      },
+      "tags": ["voice", "natural"]
+    }
+  ]
+}

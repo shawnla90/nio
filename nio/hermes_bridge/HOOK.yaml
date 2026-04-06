@@ -1,0 +1,8 @@
+name: nio
+description: "NIO voice DNA, anti-slop, metrics, and soul pipeline"
+events:
+  - gateway:startup
+  - session:start
+  - agent:start
+  - agent:end
+  - command:*

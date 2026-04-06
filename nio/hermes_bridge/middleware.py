@@ -1,0 +1,190 @@
+"""NIO middleware for Hermes gateway events.
+
+Handles: gateway:startup, session:start, agent:start, agent:end, command:*
+Provides: soul injection, voice enforcement, anti-slop validation, metrics capture.
+"""
+
+from __future__ import annotations
+
+import time
+from typing import Any
+
+# Session state tracked per active session
+_active_sessions: dict[str, dict] = {}
+
+
+async def handle(event_type: str, context: dict[str, Any]) -> Any:
+    """Main event dispatcher called by the Hermes hook system."""
+    handlers = {
+        "gateway:startup": _on_gateway_startup,
+        "session:start": _on_session_start,
+        "agent:start": _on_agent_start,
+        "agent:end": _on_agent_end,
+    }
+
+    if event_type.startswith("command:"):
+        return await _on_command(event_type, context)
+
+    handler = handlers.get(event_type)
+    if handler:
+        return await handler(context)
+
+
+async def _on_gateway_startup(context: dict) -> None:
+    """Load active soul + voice, init DB, start dash daemon if autostart."""
+    from nio.core.db import init_db
+    init_db()
+
+
+async def _on_session_start(context: dict) -> None:
+    """Create session row, resolve soul, inject soul + voice prompts."""
+    from nio.core.soul import get_active_soul, resolve_soul_with_inheritance
+    from nio.core.voice import get_active_voice, load_voice
+    from nio.core.metrics import create_session
+
+    soul_ref = get_active_soul()
+    voice_ref = get_active_voice()
+
+    soul_id = ""
+    soul_version = ""
+    voice_id = ""
+    voice_version = ""
+
+    if soul_ref and "@" in soul_ref:
+        soul_id, soul_version = soul_ref.split("@", 1)
+    elif soul_ref:
+        soul_id = soul_ref
+
+    if voice_ref and "@" in voice_ref:
+        voice_id, voice_version = voice_ref.split("@", 1)
+    elif voice_ref:
+        voice_id = voice_ref
+
+    platform = context.get("platform", "cli")
+    team_id = context.get("team_id", "")
+
+    session_id = create_session(
+        soul_id=soul_id,
+        soul_version=soul_version,
+        voice_id=voice_id,
+        voice_version=voice_version,
+        platform=platform,
+        team_id=team_id,
+    )
+
+    # Resolve full soul prompt
+    if soul_id:
+        try:
+            resolved = resolve_soul_with_inheritance(soul_id)
+            # Inject into Hermes context for system prompt
+            context["nio_system_prompt"] = resolved.get("body", "")
+        except Exception:
+            pass
+
+    # Load voice for runtime use
+    if voice_ref:
+        voice = load_voice(voice_ref)
+        if voice:
+            _active_sessions[session_id] = {
+                "voice": voice,
+                "turn_index": 0,
+                "session_id": session_id,
+            }
+
+    context["nio_session_id"] = session_id
+
+
+async def _on_agent_start(context: dict) -> None:
+    """Record turn start time and user message."""
+    session_id = context.get("nio_session_id")
+    if session_id and session_id in _active_sessions:
+        _active_sessions[session_id]["turn_start"] = time.time()
+        _active_sessions[session_id]["user_msg"] = context.get("user_message", "")
+
+
+async def _on_agent_end(context: dict) -> None:
+    """Validate output, compute slop score, record turn, emit websocket event."""
+    from nio.core.voice import apply as voice_apply
+    from nio.core.metrics import record_turn
+
+    session_id = context.get("nio_session_id")
+    if not session_id or session_id not in _active_sessions:
+        return
+
+    state = _active_sessions[session_id]
+    agent_msg = context.get("agent_message", "")
+    voice = state.get("voice")
+
+    # Calculate latency
+    turn_start = state.get("turn_start", time.time())
+    latency_ms = int((time.time() - turn_start) * 1000)
+
+    # Apply voice profile
+    slop_score = 100.0
+    violations = []
+    if voice:
+        result = voice_apply(voice, agent_msg)
+        slop_score = result.score
+        violations = [
+            {"id": d.id, "tier": d.tier, "description": d.description, "matches": d.matches}
+            for d in result.detections
+        ]
+
+    # Warn if below floor
+    soul_floor = state.get("slop_score_floor", 92)
+    if slop_score < soul_floor:
+        _emit_slop_warning(session_id, slop_score, soul_floor, violations)
+
+    # Record turn
+    state["turn_index"] += 1
+    record_turn(
+        session_id=session_id,
+        turn_index=state["turn_index"],
+        user_msg=state.get("user_msg", ""),
+        agent_msg=agent_msg,
+        latency_ms=latency_ms,
+        slop_score=slop_score,
+        slop_violations=violations,
+        tool_calls=context.get("tool_calls"),
+        memory_hits=context.get("memory_hits", 0),
+    )
+
+    # Emit websocket event for dashboard
+    _emit_dashboard_event(session_id, slop_score, latency_ms, violations)
+
+
+async def _on_command(event_type: str, context: dict) -> Any:
+    """Handle /nio-* slash commands in Hermes."""
+    cmd = event_type.replace("command:", "")
+    if cmd == "nio-status":
+        from nio.core.soul import get_active_soul
+        from nio.core.voice import get_active_voice
+        return f"Soul: {get_active_soul() or 'none'}\nVoice: {get_active_voice() or 'none'}"
+    elif cmd.startswith("nio-soul "):
+        soul_id = cmd.replace("nio-soul ", "").strip()
+        from nio.core.soul import set_active_soul
+        set_active_soul(soul_id)
+        return f"Switched to soul: {soul_id}"
+    elif cmd == "nio-dash":
+        import webbrowser
+        webbrowser.open("http://localhost:4242")
+        return "Opening dashboard..."
+    return None
+
+
+def _emit_slop_warning(session_id: str, score: float, floor: float, violations: list):
+    """Log a slop warning (visible in Hermes output)."""
+    violation_summary = ", ".join(
+        f"{v['id']} ({v.get('count', len(v.get('matches', [])))})"
+        for v in violations[:3]
+    )
+    print(f"[nio] slop-score {score:.0f}/100 (floor {floor:.0f})")
+    if violation_summary:
+        print(f"[nio] violations: {violation_summary}")
+    print(f"[nio] see dashboard: http://localhost:4242")
+
+
+def _emit_dashboard_event(session_id: str, slop_score: float, latency_ms: int, violations: list):
+    """Emit a websocket event for the live dashboard. Stub for Phase 6."""
+    # TODO: Phase 6 - wire to nio.dash.ws websocket broadcast
+    pass
