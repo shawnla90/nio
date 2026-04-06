@@ -18,6 +18,7 @@ async def handle(event_type: str, context: dict[str, Any]) -> Any:
     handlers = {
         "gateway:startup": _on_gateway_startup,
         "session:start": _on_session_start,
+        "session:end": _on_session_end,
         "agent:start": _on_agent_start,
         "agent:end": _on_agent_end,
     }
@@ -42,7 +43,13 @@ async def _on_session_start(context: dict) -> None:
     from nio.core.soul import get_active_soul, resolve_soul_with_inheritance
     from nio.core.voice import get_active_voice, load_voice
 
-    # Mode-aware resolution: team mode overrides global
+    # Resolve soul + voice (team mode overrides global)
+    soul_id = ""
+    soul_version = ""
+    voice_id = ""
+    voice_version = ""
+    voice_ref = ""
+
     try:
         from nio.core.mode import (
             get_active_mode,
@@ -54,18 +61,14 @@ async def _on_session_start(context: dict) -> None:
         if mode == "team":
             soul_id, soul_version = get_effective_soul()
             voice_id, voice_version = get_effective_voice()
+            voice_ref = f"{voice_id}@{voice_version}" if voice_id else ""
             context["team_id"] = get_team_id()
         else:
             raise ValueError("global mode")
     except Exception:
         # Global mode fallback
         soul_ref = get_active_soul()
-        voice_ref = get_active_voice()
-
-        soul_id = ""
-        soul_version = ""
-        voice_id = ""
-        voice_version = ""
+        voice_ref = get_active_voice() or ""
 
         if soul_ref and "@" in soul_ref:
             soul_id, soul_version = soul_ref.split("@", 1)
@@ -145,6 +148,31 @@ async def _on_session_start(context: dict) -> None:
         conn.close()
     except Exception:
         pass  # Memory system not yet initialized
+
+
+async def _on_session_end(context: dict) -> None:
+    """Mark session as ended, clean up active session state."""
+    session_id = context.get("nio_session_id")
+    if not session_id:
+        return
+
+    # Mark ended in DB
+    try:
+        from datetime import datetime, timezone
+
+        from nio.core.db import get_connection
+        conn = get_connection()
+        conn.execute(
+            "UPDATE sessions SET ended_at = ? WHERE session_id = ? AND ended_at IS NULL",
+            (datetime.now(timezone.utc).isoformat(), session_id),
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+    # Clean up memory
+    _active_sessions.pop(session_id, None)
 
 
 async def _on_agent_start(context: dict) -> None:

@@ -101,13 +101,55 @@ Claude Code integration works the same way. NIO installs a skill and hooks that 
 
 ## Built in public
 
-NIO exists because of context engineering. The system that produced it is the system it ships.
+NIO is not a weekend repo. It is the result of 2.5 months of building in public with Claude Code.
 
-Since February 2026, one person on the Claude Code Pro plan ($200/mo, no API) has shipped: 4 full-stack websites, 8 repos, 60+ GitHub stars, and NIO itself. All from the CLI. No throttles hit. Daily crons running Claude Code for automated commits, logs, and maintenance across every repo.
+**The timeline:**
 
-The technique: structured handoffs between sessions, persistent memory in SQLite, soul prompts that keep the agent focused, anti-slop scoring that catches drift before it compounds. NIO packages all of that into something you can install and use today.
+- **Feb 2026**: Started with [recursive-data-drift](https://github.com/shawnla90/recursive-data-drift), the first context handoff engine. Structured markdown handoffs between Claude Code sessions so no context was lost.
+- **Mar 2026**: Built [shawn-gtme-os](https://github.com/shawnla90/shawn-gtme-os), a GTM coding agent with voice DNA, anti-slop validation, and the first soul system. This became NIO's foundation.
+- **Mar-Apr 2026**: Shipped 4 full-stack websites ([shawnos.ai](https://shawnos.ai), [thegtmos.ai](https://thegtmos.ai), [clearbox.run](https://clearbox.run), [treadit.ai](https://treadit.ai)), each with its own repo, CI, and deployment.
+- **Apr 2026**: Extracted everything into NIO. The soul system, voice profiles, anti-slop registry, persistent memory, and dashboard are all patterns that were already running in production across those repos.
 
-This is not a framework built from theory. It is the tooling extracted from a working build practice. The proof is the output.
+**The numbers:**
+
+- Claude Code Max plan ($200/mo, no API). Two months. $400 total.
+- 8 repos. 60+ GitHub stars. ~15 forks.
+- Zero throttles hit. Not once. Off-peak timezone helped, but the context engineering is the real factor.
+- Daily crons running Claude Code for automated commits, logs, and monitoring across every repo.
+- NIO itself: 55+ commits, 141 tests, CI green on Python 3.11/3.12/3.13.
+
+**The technique:**
+
+Structured handoffs between sessions. Persistent memory in SQLite. Soul prompts that keep the agent focused. Anti-slop scoring that catches quality drift before it compounds. CLAUDE.md files that give each repo its own context. NIO packages all of that into something you can `pip install` and use today.
+
+This is not a framework built from theory. It is the tooling extracted from a working build practice. The proof is the repos.
+
+## What is Hermes?
+
+[Hermes Agent](https://github.com/NousResearch/hermes-agent) is an open-source multi-platform AI agent runtime by Nous Research. It connects Claude (or other LLMs) to messaging platforms: Discord, WhatsApp, Telegram, Slack, Signal, email, and more. It handles the gateway, session management, and tool execution.
+
+NIO is not Hermes. NIO is what sits on top.
+
+Hermes gives you the runtime. NIO gives you the personality (souls), the writing style (voices), the quality filter (anti-slop), the metrics (slop scores, latency, session tracking), the dashboard (localhost:4242), the persistent memory (SQLite, cross-session resume), and the team mode (shared souls, git-backed memory).
+
+If you already use Hermes, NIO installs as a zero-patch plugin at `~/.hermes/hooks/nio/`. Your existing platform connections keep working. NIO adds scoring, memory, and voice enforcement to every message.
+
+If you do not use Hermes, NIO works standalone with Claude Code. Install it, run `nio setup`, and your Claude Code sessions get tracked, scored, and persisted.
+
+## How persistent memory works
+
+Every session your agent has is recorded in `~/.nio/nio.db`. When a new session starts, NIO:
+
+1. Finds the most recent ended session
+2. Summarizes it (task type, turn count, slop average, first user message)
+3. Stores the summary as `context_snapshot` in the new session row
+4. Injects the summary into the system prompt as `nio_memory_context`
+
+The result: your agent knows what it did last time. It knows what you were working on. It knows the quality of its own output.
+
+Memory also imports from external sources. `nio setup memory` pulls in your Hermes conversation history (`~/.hermes/memories/MEMORY.md`) and your Claude Code handoff documents (`~/.claude/handoffs/*.md`). These are deduplicated by SHA-256 hash and stored in the `memory_context` table. 63 entries imported on first run from a working system.
+
+The memory bridge is bidirectional. `sync_back_to_hermes()` writes NIO context back to Hermes memory files. Both systems stay in sync.
 
 ## Quick start
 
