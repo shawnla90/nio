@@ -1,66 +1,81 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>NIO - Gateway</title>
-    <link rel="stylesheet" href="/static/css/dashboard.css">
-</head>
-<body>
-    <nav class="nav">
-        <a href="/" class="nav-brand">NIO</a>
-        <div class="nav-links">
-            <a href="/">Now Playing</a>
-            <a href="/souls/diff">Soul Diff</a>
-            <a href="/metrics">Metrics</a>
-            <a href="/team">Team</a>
-            <a href="/registry">Registry</a>
-            <a href="/gateway" class="active">Gateway</a>
-        </div>
-    </nav>
+{% extends "base.html" %}
+{% block title_suffix %} - Connections{% endblock %}
 
-    <main class="container">
-        <h1>Gateway Status</h1>
+{% block content %}
+<h1>Connections</h1>
+<p class="page-desc">Connect your agent to messaging platforms. Messages come in, NIO scores and tracks every response.</p>
 
-        <div class="card-grid">
-            <div class="card">
-                <div class="card-label">Hermes</div>
-                <div class="card-value" style="color: var(--green);">Hooked</div>
-                <p class="card-text"><code>~/.hermes/hooks/nio/</code></p>
-            </div>
-            <div class="card">
-                <div class="card-label">Dashboard</div>
-                <div class="card-value" style="color: var(--green);">Running</div>
-                <p class="card-text"><code>localhost:4242</code></p>
-            </div>
-            <div class="card">
-                <div class="card-label">Database</div>
-                <div class="card-value" style="color: var(--green);">Connected</div>
-                <p class="card-text"><code>~/.nio/nio.db</code></p>
-            </div>
+<div class="platform-grid">
+    {% for p in platforms %}
+    <div class="platform-card {% if p.configured %}connected{% endif %}" x-data="{ editing: false }">
+        <div class="platform-header">
+            <span class="platform-name">{{ p.display }}</span>
+            {% if p.configured %}
+            <span class="platform-badge connected">Connected</span>
+            {% else %}
+            <span class="platform-badge">Not set</span>
+            {% endif %}
         </div>
 
-        <h2 style="margin-top: 2rem;">Platform Connectivity</h2>
-        <div class="card-grid">
-            <div class="card"><div class="card-label">Claude Code</div><div class="card-value" style="color: var(--green);">Configured</div></div>
-            <div class="card"><div class="card-label">Discord</div><div class="card-value" style="color: var(--muted);">--</div></div>
-            <div class="card"><div class="card-label">Telegram</div><div class="card-value" style="color: var(--muted);">--</div></div>
-            <div class="card"><div class="card-label">WhatsApp</div><div class="card-value" style="color: var(--muted);">--</div></div>
-            <div class="card"><div class="card-label">CLI</div><div class="card-value" style="color: var(--green);">Active</div></div>
+        {% if p.configured %}
+        <div class="platform-detail">
+            <span class="dim">{{ p.token_preview }}</span>
         </div>
+        <button class="btn-sm" @click="editing = !editing" x-text="editing ? 'Cancel' : 'Update'"></button>
+        {% else %}
+        <p class="platform-help">{{ p.help }}</p>
+        {% if p.setup_url %}
+        <a href="{{ p.setup_url }}" target="_blank" class="platform-setup-link">Get credentials</a>
+        {% endif %}
+        <button class="btn-sm" @click="editing = !editing" x-text="editing ? 'Cancel' : 'Set up'"></button>
+        {% endif %}
 
-        <h2 style="margin-top: 2rem;">Hook Events</h2>
+        <div x-show="editing" x-cloak class="platform-form">
+            {% if p.platform == 'whatsapp' %}
+                {% if whatsapp_bridge %}
+                <p class="dim">Bridge found at: {{ whatsapp_bridge }}</p>
+                <p>Run <code>hermes whatsapp</code> in terminal to scan QR code.</p>
+                {% else %}
+                <p class="dim">WhatsApp bridge not found. Requires Node.js + Baileys.</p>
+                {% endif %}
+            {% elif p.platform == 'signal' %}
+                <p class="dim">Requires <code>signal-cli</code>. Install: <code>brew install signal-cli</code></p>
+                <input type="text" class="input-field" placeholder="Phone number (+1234567890)"
+                       id="token-{{ p.platform }}">
+                <button class="btn-sm"
+                        hx-post="/api/gateway/configure"
+                        hx-vals='js:{platform: "{{ p.platform }}", token: document.getElementById("token-{{ p.platform }}").value}'
+                        hx-swap="none"
+                        onclick="setTimeout(() => location.reload(), 500)">Save</button>
+            {% else %}
+                <input type="text" class="input-field" placeholder="{{ p.display }} token or address"
+                       id="token-{{ p.platform }}">
+                <button class="btn-sm"
+                        hx-post="/api/gateway/configure"
+                        hx-vals='js:{platform: "{{ p.platform }}", token: document.getElementById("token-{{ p.platform }}").value}'
+                        hx-swap="none"
+                        onclick="setTimeout(() => location.reload(), 500)">Save</button>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="connections-footer">
+    <h2>Infrastructure</h2>
+    <div class="card-grid">
         <div class="card">
-            <table class="data-table">
-                <thead><tr><th>Event</th><th>Handler</th><th>Status</th></tr></thead>
-                <tbody>
-                    <tr><td>gateway:startup</td><td>Init DB, load soul + voice</td><td style="color: var(--green);">Registered</td></tr>
-                    <tr><td>session:start</td><td>Create session, inject prompts</td><td style="color: var(--green);">Registered</td></tr>
-                    <tr><td>agent:start</td><td>Record user msg, classify task</td><td style="color: var(--green);">Registered</td></tr>
-                    <tr><td>agent:end</td><td>Voice apply, slop score, metrics</td><td style="color: var(--green);">Registered</td></tr>
-                    <tr><td>command:*</td><td>/nio-status, /nio-soul, /nio-dash</td><td style="color: var(--green);">Registered</td></tr>
-                </tbody>
-            </table>
+            <div class="card-label">Hermes Hook</div>
+            <div class="card-value" style="color: var({% if hermes_hook %}--green{% else %}--red{% endif %});">{% if hermes_hook %}Installed{% else %}Not found{% endif %}</div>
         </div>
-    </main>
-</body>
-</html>
+        <div class="card">
+            <div class="card-label">Claude Code Skill</div>
+            <div class="card-value" style="color: var({% if cc_skill %}--green{% else %}--red{% endif %});">{% if cc_skill %}Installed{% else %}Not found{% endif %}</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Dashboard</div>
+            <div class="card-value" style="color: var(--green);">Running</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

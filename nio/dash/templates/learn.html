@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title_suffix %} - Learn{% endblock %}
+
+{% block content %}
+<h1>Learn Context Engineering</h1>
+<p class="page-desc">How to get the most out of Claude Code with structured handoffs, persistent memory, and quality control.</p>
+
+<div class="card-grid">
+    <div class="card">
+        <div class="card-label">The Proof</div>
+        <div class="card-value card-value-sm">$200/mo, 4 websites</div>
+        <p class="card-text">One person, Claude Code Pro plan, no API. 4 full-stack sites, 8 repos, 60+ stars since Feb 2026. No throttles. Here's how.</p>
+    </div>
+    <div class="card">
+        <div class="card-label">Context Engineering</div>
+        <div class="card-value card-value-sm">.md files + handoffs</div>
+        <p class="card-text">CLAUDE.md, structured handoffs between sessions, memory that persists. The system that lets one builder ship like a team.</p>
+    </div>
+    <div class="card">
+        <div class="card-label">Parallel Execution</div>
+        <div class="card-value card-value-sm">Multiple agents at once</div>
+        <p class="card-text">How to run multiple tool calls simultaneously, when to batch vs sequence, and how NIO tracks it all.</p>
+    </div>
+    <div class="card">
+        <div class="card-label">Quality Control</div>
+        <div class="card-value card-value-sm">Anti-slop + souls</div>
+        <p class="card-text">29 rules scoring every response. Soul prompts that keep your agent focused. Voice profiles that enforce your tone.</p>
+    </div>
+</div>
+
+<div class="empty-state" style="margin-top: 2rem;">
+    <p>Full interactive tutorials coming soon. For now, explore the <a href="/soul" style="color: var(--accent);">soul viewer</a> and <a href="/memory" style="color: var(--accent);">memory browser</a>.</p>
+</div>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title_suffix %} - Memory{% endblock %}
+
+{% block content %}
+<h1>Memory</h1>
+<p class="page-desc">Everything your agent remembers across sessions. Imported from Hermes and Claude Code handoffs.</p>
+
+<div class="hero-cards">
+    <div class="card">
+        <div class="card-label">Total Entries</div>
+        <div class="card-value">{{ stats.total }}</div>
+    </div>
+    <div class="card">
+        <div class="card-label">Hermes Memories</div>
+        <div class="card-value">{{ stats.hermes_memory + stats.hermes_user }}</div>
+    </div>
+    <div class="card">
+        <div class="card-label">Claude Handoffs</div>
+        <div class="card-value">{{ stats.claude_handoff }}</div>
+    </div>
+</div>
+
+<div class="memory-actions">
+    <button class="btn" hx-post="/api/memory/import/hermes" hx-swap="none"
+            onclick="this.textContent='Importing...'; setTimeout(() => location.reload(), 1000)">
+        Re-import Hermes
+    </button>
+    <button class="btn" hx-post="/api/memory/import/handoffs" hx-swap="none"
+            onclick="this.textContent='Importing...'; setTimeout(() => location.reload(), 1000)">
+        Re-import Handoffs
+    </button>
+</div>
+
+<section class="memory-list">
+    <h2>Entries</h2>
+    <div class="memory-filters" x-data="{ source: '' }">
+        <button class="tab-btn" :class="{ active: source === '' }" @click="source = ''; $refs.list.setAttribute('hx-get', '/api/memory?per_page=30'); htmx.trigger($refs.list, 'load')">All</button>
+        <button class="tab-btn" :class="{ active: source === 'hermes_memory' }" @click="source = 'hermes_memory'; $refs.list.setAttribute('hx-get', '/api/memory?source=hermes_memory&per_page=30'); htmx.trigger($refs.list, 'load')">Hermes</button>
+        <button class="tab-btn" :class="{ active: source === 'claude_handoff' }" @click="source = 'claude_handoff'; $refs.list.setAttribute('hx-get', '/api/memory?source=claude_handoff&per_page=30'); htmx.trigger($refs.list, 'load')">Handoffs</button>
+    </div>
+    <div id="memory-entries" x-ref="list"
+         hx-get="/api/memory?per_page=30"
+         hx-trigger="load"
+         hx-swap="innerHTML">
+        <p class="dim">Loading...</p>
+    </div>
+</section>
+{% endblock %}

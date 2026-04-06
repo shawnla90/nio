@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NIO{% block title_suffix %} Dashboard{% endblock %}</title>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="https://unpkg.com/alpinejs@3.14.0" defer></script>
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    {% block head_extra %}{% endblock %}
+</head>
+<body class="dark">
+    <nav>
+        <a href="/" class="nav-brand">NIO</a>
+        <div class="nav-links">
+            <a href="/" {% if active_page == 'home' %}class="active"{% endif %}>Home</a>
+            <a href="/soul" {% if active_page == 'soul' %}class="active"{% endif %}>Soul</a>
+            <a href="/memory" {% if active_page == 'memory' %}class="active"{% endif %}>Memory</a>
+            <a href="/sessions" {% if active_page == 'sessions' %}class="active"{% endif %}>Sessions</a>
+            <a href="/metrics" {% if active_page == 'metrics' %}class="active"{% endif %}>Metrics</a>
+            <a href="/gateway" {% if active_page == 'connections' %}class="active"{% endif %}>Connections</a>
+            <a href="/learn" {% if active_page == 'learn' %}class="active"{% endif %}>Learn</a>
+        </div>
+    </nav>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,153 +1,71 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NIO Dashboard</title>
-    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-    <script src="https://unpkg.com/alpinejs@3.14.0" defer></script>
-    <link rel="stylesheet" href="/static/css/dashboard.css">
-</head>
-<body class="dark">
-    <nav>
-        <div class="nav-brand">NIO</div>
-        <div class="nav-links">
-            <a href="/" class="active">Home</a>
-            <a href="/metrics">Metrics</a>
-            <a href="/registry">Registry</a>
-            <a href="/gateway">Connections</a>
-        </div>
-    </nav>
+{% extends "base.html" %}
+{% block title_suffix %} - Home{% endblock %}
 
-    <main>
-        {% if setup_needed %}
-        <!-- ONBOARDING: first-time user -->
-        <section class="onboarding">
-            <h1 class="welcome-title">NIO is running.</h1>
-            <p class="welcome-sub">Your agent has a personality, a quality filter, and a memory. Here's what's active.</p>
+{% block content %}
+{% if setup_needed %}
+<!-- Onboarding banner -->
+<section class="onboarding-banner">
+    <h2>Finish setting up NIO</h2>
+    <p>Run <code class="setup-cmd">nio setup</code> in your terminal to configure everything, or set up each piece below.</p>
+</section>
+{% endif %}
 
-            <div class="setup-grid">
-                <!-- Personality -->
-                <div class="setup-card {% if soul != 'none' %}done{% endif %}">
-                    <div class="setup-icon">{% if soul != 'none' %}&#10003;{% else %}1{% endif %}</div>
-                    <div class="setup-body">
-                        <h3>Personality</h3>
-                        <p class="setup-explain">Controls how your agent thinks and responds. Direct, opinionated, builder-first.</p>
-                        {% if soul != 'none' %}
-                            <div class="setup-status active">{{ soul }}</div>
-                        {% else %}
-                            <div class="setup-status pending">Not set</div>
-                            <code class="setup-cmd">nio soul apply nio-core</code>
-                        {% endif %}
-                    </div>
-                </div>
+<!-- Command center -->
+<section class="hub-top">
+    <div class="card" onclick="location.href='/soul'">
+        <div class="card-label">Personality</div>
+        <div class="card-value">{{ soul }}</div>
+        <div class="card-sub">{% if soul != 'none' %}Active soul{% else %}Not configured{% endif %}</div>
+    </div>
+    <div class="card">
+        <div class="card-label">Writing Style</div>
+        <div class="card-value">{{ voice }}</div>
+        <div class="card-sub">{% if voice != 'none' %}Active voice{% else %}Not configured{% endif %}</div>
+    </div>
+    <div class="card slop-card">
+        <div class="card-label">Quality Score</div>
+        <div class="card-value" id="slop-gauge">{% if slop_avg > 0 %}{{ "%.0f"|format(slop_avg) }}/100{% else %}--{% endif %}</div>
+        <div class="card-sub">24h average</div>
+    </div>
+    <div class="card">
+        <div class="card-label">Sessions</div>
+        <div class="card-value">{{ session_count }}</div>
+        <div class="card-sub">{{ turn_count }} turns total</div>
+    </div>
+</section>
 
-                <!-- Writing style -->
-                <div class="setup-card {% if voice != 'none' %}done{% endif %}">
-                    <div class="setup-icon">{% if voice != 'none' %}&#10003;{% else %}2{% endif %}</div>
-                    <div class="setup-body">
-                        <h3>Writing style</h3>
-                        <p class="setup-explain">Tone, banned phrases, formatting rules. Applied to every response your agent writes.</p>
-                        {% if voice != 'none' %}
-                            <div class="setup-status active">{{ voice }}</div>
-                        {% else %}
-                            <div class="setup-status pending">Not set</div>
-                            <code class="setup-cmd">nio voice apply shawn-builder</code>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <!-- Quality filter -->
-                <div class="setup-card {% if slop_avg > 0 %}done{% endif %}">
-                    <div class="setup-icon">{% if slop_avg > 0 %}&#10003;{% else %}3{% endif %}</div>
-                    <div class="setup-body">
-                        <h3>Quality filter</h3>
-                        <p class="setup-explain">Scores every response for AI slop patterns. Em dashes, hype words, filler. 29 rules, 3 tiers.</p>
-                        {% if slop_avg > 0 %}
-                            <div class="setup-status active">{{ "%.0f"|format(slop_avg) }}/100 avg</div>
-                        {% else %}
-                            <div class="setup-status pending">No data yet</div>
-                            <code class="setup-cmd">nio antislop score "test your text here"</code>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <!-- Connections -->
-                <div class="setup-card {% if platforms_connected > 0 %}done{% endif %}">
-                    <div class="setup-icon">{% if platforms_connected > 0 %}&#10003;{% else %}4{% endif %}</div>
-                    <div class="setup-body">
-                        <h3>Connections</h3>
-                        <p class="setup-explain">Connect your agent to Discord, WhatsApp, Telegram, Signal, or Slack. Or just use Claude Code.</p>
-                        {% if platforms_connected > 0 %}
-                            <div class="setup-status active">{{ platforms_connected }} connected</div>
-                        {% else %}
-                            <div class="setup-status pending">None connected</div>
-                            <code class="setup-cmd">nio setup platforms</code>
-                        {% endif %}
-                        <a href="/gateway" class="setup-link">Manage connections &rarr;</a>
-                    </div>
-                </div>
-
-                <!-- Memory -->
-                <div class="setup-card {% if session_count > 0 %}done{% endif %}">
-                    <div class="setup-icon">{% if session_count > 0 %}&#10003;{% else %}5{% endif %}</div>
-                    <div class="setup-body">
-                        <h3>Memory</h3>
-                        <p class="setup-explain">Your agent remembers across sessions. New sessions carry context from previous ones.</p>
-                        {% if session_count > 0 %}
-                            <div class="setup-status active">{{ session_count }} sessions, {{ turn_count }} turns</div>
-                        {% else %}
-                            <div class="setup-status pending">No sessions yet</div>
-                            <code class="setup-cmd">nio cc start</code>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <!-- Dashboard -->
-                <div class="setup-card done">
-                    <div class="setup-icon">&#10003;</div>
-                    <div class="setup-body">
-                        <h3>Dashboard</h3>
-                        <p class="setup-explain">You're looking at it. Live metrics, session feed, quality scores. All from localhost.</p>
-                        <div class="setup-status active">localhost:4242</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="quick-start-box">
-                <h3>Quick start</h3>
-                <p>Run the interactive setup wizard to configure everything at once:</p>
-                <code class="setup-cmd big">nio setup</code>
-            </div>
-        </section>
-
-        {% else %}
-        <!-- ACTIVE: has sessions, show metrics -->
-        <section class="hero-cards">
-            <div class="card">
-                <div class="card-label">Personality</div>
-                <div class="card-value">{{ soul }}</div>
-            </div>
-            <div class="card">
-                <div class="card-label">Writing Style</div>
-                <div class="card-value">{{ voice }}</div>
-            </div>
-            <div class="card slop-card">
-                <div class="card-label">Quality Score (24h avg)</div>
-                <div class="card-value" id="slop-gauge">{{ "%.1f"|format(slop_avg) }}/100</div>
-            </div>
-        </section>
-
-        <section class="feed">
+<section class="hub-mid">
+    <div class="hub-col">
+        <div class="feed">
             <h2>Recent Activity</h2>
             <div id="turn-feed"
-                 hx-get="/api/turns/recent?limit=10"
+                 hx-get="/api/turns/recent?limit=5"
                  hx-trigger="load, every 5s"
                  hx-swap="innerHTML">
-                <p class="dim">Loading...</p>
+                <p class="dim">{% if turn_count == 0 %}No activity yet. Start a session with <code>nio cc start</code>{% else %}Loading...{% endif %}</p>
             </div>
-        </section>
-        {% endif %}
-    </main>
-</body>
-</html>
+        </div>
+    </div>
+    <div class="hub-col hub-sidebar">
+        <div class="card" onclick="location.href='/gateway'">
+            <div class="card-label">Connections</div>
+            <div class="card-value">{{ platforms_connected }}</div>
+            <div class="card-sub">platform{{ 's' if platforms_connected != 1 }} connected</div>
+        </div>
+        <div class="card" onclick="location.href='/memory'">
+            <div class="card-label">Memory</div>
+            <div class="card-value">{{ memory_count }}</div>
+            <div class="card-sub">entries imported</div>
+        </div>
+        <div class="card" onclick="location.href='/learn'">
+            <div class="card-label">Learn</div>
+            <div class="card-value card-value-sm">Context Engineering</div>
+            <div class="card-sub">Guides for Claude Code</div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/dashboard.js"></script>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title_suffix %} - Sessions{% endblock %}
+
+{% block content %}
+<h1>Sessions</h1>
+<p class="page-desc">Every conversation your agent has had. Click a session to see turn-by-turn detail.</p>
+
+{% if sessions %}
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Platform</th>
+            <th>Soul</th>
+            <th>Task</th>
+            <th>Turns</th>
+            <th>Slop Avg</th>
+            <th>Started</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for s in sessions %}
+        <tr onclick="location.href='/sessions/{{ s.session_id }}'" style="cursor: pointer;">
+            <td><span class="platform-badge {% if s.platform == 'claude_code' %}cc{% endif %}">{{ s.platform or 'cli' }}</span></td>
+            <td>{{ s.soul_id or '--' }}</td>
+            <td>{{ s.task_type or '--' }}</td>
+            <td>{{ s.turn_count }}</td>
+            <td>{% if s.slop_avg %}{{ "%.0f"|format(s.slop_avg) }}{% else %}--{% endif %}</td>
+            <td class="dim">{{ s.started_at[:16] if s.started_at else '--' }}</td>
+            <td>{% if s.ended_at %}<span class="dim">ended</span>{% else %}<span style="color: var(--green);">active</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="empty-state">
+    <p>No sessions yet. Start one with <code>nio cc start</code> or message your agent on Discord/WhatsApp.</p>
+</div>
+{% endif %}
+{% endblock %}

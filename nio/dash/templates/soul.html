@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title_suffix %} - Soul{% endblock %}
+
+{% block content %}
+<h1>{{ soul_id or 'No Active Soul' }}</h1>
+
+{% if soul_data %}
+<div class="soul-layout">
+    <div class="soul-main">
+        <div class="card">
+            <div class="card-label">Prompt Body</div>
+            <pre class="soul-body">{{ soul_data.body }}</pre>
+        </div>
+    </div>
+    <div class="soul-sidebar">
+        <div class="card">
+            <div class="card-label">Version</div>
+            <div class="card-value">{{ soul_data.metadata.version or '0.1.0' }}</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Voice</div>
+            <div class="card-value card-value-sm">{{ soul_data.metadata.voice or 'none' }}</div>
+        </div>
+        {% if soul_data.metadata.targets %}
+        <div class="card">
+            <div class="card-label">Targets</div>
+            {% for key, val in soul_data.metadata.targets.items() %}
+            <div class="soul-target">
+                <span class="dim">{{ key }}</span>
+                <span>{{ val }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if soul_data.metadata.antislop %}
+        <div class="card">
+            <div class="card-label">Anti-Slop Profile</div>
+            <div class="card-value card-value-sm">{{ soul_data.metadata.antislop.profile or 'default' }}</div>
+        </div>
+        {% endif %}
+        {% if soul_data.metadata.derived_from %}
+        <div class="card">
+            <div class="card-label">Derived From</div>
+            <div class="card-value card-value-sm">{{ soul_data.metadata.derived_from }}</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if versions %}
+<section class="soul-versions">
+    <h2>Version History</h2>
+    <table class="data-table">
+        <thead><tr><th>Version</th><th>Released</th><th>Changelog</th></tr></thead>
+        <tbody>
+            {% for v in versions %}
+            <tr>
+                <td>{{ v.version }}</td>
+                <td class="dim">{{ v.released_at[:10] if v.released_at else '--' }}</td>
+                <td>{{ v.changelog or '--' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endif %}
+
+{% else %}
+<div class="empty-state">
+    <p>No soul is active. Run <code>nio soul apply nio-core</code> to set one.</p>
+</div>
+{% endif %}
+{% endblock %}

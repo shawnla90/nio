@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title_suffix %} - Session {{ session.session_id[:8] }}{% endblock %}
+
+{% block content %}
+<p><a href="/sessions" class="dim">&larr; All sessions</a></p>
+<h1>Session {{ session.session_id[:8] }}...</h1>
+
+<div class="hero-cards">
+    <div class="card">
+        <div class="card-label">Platform</div>
+        <div class="card-value card-value-sm">{{ session.platform or 'cli' }}</div>
+    </div>
+    <div class="card">
+        <div class="card-label">Soul</div>
+        <div class="card-value card-value-sm">{{ session.soul_id or 'none' }}{% if session.soul_version %}@{{ session.soul_version }}{% endif %}</div>
+    </div>
+    <div class="card">
+        <div class="card-label">Task</div>
+        <div class="card-value card-value-sm">{{ session.task_type or 'general' }}</div>
+    </div>
+    <div class="card">
+        <div class="card-label">Turns</div>
+        <div class="card-value">{{ turns|length }}</div>
+    </div>
+    <div class="card slop-card">
+        <div class="card-label">Slop Avg</div>
+        <div class="card-value">{% if slop_avg %}{{ "%.0f"|format(slop_avg) }}/100{% else %}--{% endif %}</div>
+    </div>
+</div>
+
+<section class="turn-timeline">
+    <h2>Turn-by-turn</h2>
+    {% for t in turns %}
+    <div class="turn-row">
+        <div class="turn-index">#{{ t.turn_index }}</div>
+        <div class="turn-content">
+            {% if t.user_msg %}
+            <div class="turn-user">{{ t.user_msg[:200] }}{% if t.user_msg|length > 200 %}...{% endif %}</div>
+            {% endif %}
+            {% if t.agent_msg %}
+            <div class="turn-agent">{{ t.agent_msg[:300] }}{% if t.agent_msg|length > 300 %}...{% endif %}</div>
+            {% endif %}
+        </div>
+        <div class="turn-meta">
+            <span class="turn-score" style="color: var({% if t.slop_score >= 90 %}--green{% elif t.slop_score >= 70 %}--yellow{% else %}--red{% endif %});">{{ "%.0f"|format(t.slop_score) if t.slop_score else '--' }}</span>
+            <span class="turn-latency">{{ t.latency_ms or 0 }}ms</span>
+        </div>
+    </div>
+    {% endfor %}
+    {% if not turns %}
+    <div class="empty-state"><p>No turns recorded.</p></div>
+    {% endif %}
+</section>
+{% endblock %}
