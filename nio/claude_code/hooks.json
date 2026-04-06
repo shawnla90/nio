@@ -1,14 +1,46 @@
 {
-  "description": "NIO hooks for Claude Code settings.json integration",
-  "note": "These hooks are injected into ~/.claude/settings.json by `nio install`",
   "hooks": {
-    "PreToolCall": {
-      "description": "Load NIO soul context before tool execution",
-      "enabled": true
-    },
-    "PostToolCall": {
-      "description": "Run anti-slop validation and metrics capture after tool output",
-      "enabled": true
-    }
+    "PreToolCall": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "nio cc status 2>/dev/null || true"
+          }
+        ]
+      }
+    ],
+    "PostToolCall": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "nio cc turn --agent \"$(echo $CLAUDE_TOOL_OUTPUT | head -c 500)\" 2>/dev/null || true"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "nio cc start 2>/dev/null || true"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "nio cc end 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
   }
 }

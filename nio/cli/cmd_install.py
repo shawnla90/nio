@@ -46,8 +46,9 @@ def install(
     # Install Hermes hook
     _install_hermes_hook(console)
 
-    # Install Claude Code skill
+    # Install Claude Code skill + hooks
     _install_claude_code_skill(console)
+    _install_claude_code_hooks(console)
 
     # Write default config
     _write_default_config(nio_home, console)
@@ -117,6 +118,53 @@ def _install_claude_code_skill(console):
         console.print("  [green]OK[/green]  Claude Code skill installed")
     else:
         console.print("  [yellow]SKIP[/yellow]  Claude Code skill (bundled file not found)")
+
+
+def _install_claude_code_hooks(console):
+    """Install NIO hooks into Claude Code settings."""
+    import json
+    from pathlib import Path
+
+    settings_path = Path.home() / ".claude" / "settings.json"
+    hooks_source = Path(__file__).parent.parent / "claude_code" / "hooks.json"
+
+    if not hooks_source.exists():
+        console.print("  [yellow]SKIP[/yellow]  Claude Code hooks (bundled file not found)")
+        return
+
+    with open(hooks_source) as f:
+        nio_hooks = json.load(f)
+
+    # Read existing settings or create new
+    settings = {}
+    if settings_path.exists():
+        with open(settings_path) as f:
+            settings = json.load(f)
+
+    # Merge hooks (don't overwrite user's existing hooks)
+    if "hooks" not in settings:
+        settings["hooks"] = {}
+
+    for event_type, hook_list in nio_hooks.get("hooks", {}).items():
+        if event_type not in settings["hooks"]:
+            settings["hooks"][event_type] = hook_list
+        # If event already has hooks, check if NIO hooks are already present
+        else:
+            existing_cmds = set()
+            for entry in settings["hooks"][event_type]:
+                for h in entry.get("hooks", []):
+                    existing_cmds.add(h.get("command", ""))
+            for entry in hook_list:
+                for h in entry.get("hooks", []):
+                    if h.get("command", "") not in existing_cmds:
+                        settings["hooks"][event_type].append(entry)
+                        break
+
+    settings_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(settings_path, "w") as f:
+        json.dump(settings, f, indent=2)
+
+    console.print("  [green]OK[/green]  Claude Code hooks registered")
 
 
 def _write_default_config(nio_home, console):
