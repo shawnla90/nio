@@ -11,7 +11,6 @@ import json
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
 HERMES_MEMORIES = Path.home() / ".hermes" / "memories"
 CLAUDE_HANDOFFS = Path.home() / ".claude" / "handoffs"
@@ -81,8 +80,9 @@ def import_claude_handoffs() -> int:
     with source='claude_handoff'. Deduplicates by content hash.
     Returns count of new rows inserted.
     """
-    from nio.core.db import get_connection
     import re
+
+    from nio.core.db import get_connection
 
     if not CLAUDE_HANDOFFS.is_dir():
         return 0

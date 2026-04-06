@@ -107,6 +107,7 @@ def record_turn(
 ):
     """Record a single turn's metrics."""
     import json
+
     from nio.core.db import get_connection
 
     turn_id = str(uuid.uuid4())
@@ -208,6 +209,7 @@ def query_team_metrics(team_id: str, window: str = "7d") -> dict:
 def export_metrics(format: str = "json", window: str = "30d"):
     """Export raw metrics data."""
     import json as json_mod
+
     from nio.core.db import get_connection
 
     cutoff = (datetime.now(timezone.utc) - _parse_window(window)).isoformat()

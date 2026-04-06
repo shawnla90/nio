@@ -38,13 +38,18 @@ async def _on_gateway_startup(context: dict) -> None:
 
 async def _on_session_start(context: dict) -> None:
     """Create session row, resolve soul, inject soul + voice prompts."""
+    from nio.core.metrics import create_session
     from nio.core.soul import get_active_soul, resolve_soul_with_inheritance
     from nio.core.voice import get_active_voice, load_voice
-    from nio.core.metrics import create_session
 
     # Mode-aware resolution: team mode overrides global
     try:
-        from nio.core.mode import get_active_mode, get_effective_soul, get_effective_voice, get_team_id
+        from nio.core.mode import (
+            get_active_mode,
+            get_effective_soul,
+            get_effective_voice,
+            get_team_id,
+        )
         mode = get_active_mode()
         if mode == "team":
             soul_id, soul_version = get_effective_soul()
@@ -110,9 +115,10 @@ async def _on_session_start(context: dict) -> None:
 
     # Session resume: carry context from previous session
     try:
-        from nio.core.memory import get_session_context, summarize_session
-        from nio.core.db import get_connection
         import json as _json
+
+        from nio.core.db import get_connection
+        from nio.core.memory import get_session_context, summarize_session
 
         conn = get_connection()
         prev = conn.execute(
@@ -167,8 +173,8 @@ async def _on_agent_start(context: dict) -> None:
 
 async def _on_agent_end(context: dict) -> None:
     """Validate output, compute slop score, record turn, emit websocket event."""
-    from nio.core.voice import apply as voice_apply
     from nio.core.metrics import record_turn
+    from nio.core.voice import apply as voice_apply
 
     session_id = context.get("nio_session_id")
     if not session_id or session_id not in _active_sessions:
@@ -253,14 +259,15 @@ def _emit_slop_warning(session_id: str, score: float, floor: float, violations: 
     print(f"[nio] slop-score {score:.0f}/100 (floor {floor:.0f})")
     if violation_summary:
         print(f"[nio] violations: {violation_summary}")
-    print(f"[nio] see dashboard: http://localhost:4242")
+    print("[nio] see dashboard: http://localhost:4242")
 
 
 def _emit_dashboard_event(session_id: str, slop_score: float, latency_ms: int, violations: list):
     """Emit a websocket event for the live dashboard."""
     try:
-        from nio.dash.ws import broadcast_sync
         import datetime
+
+        from nio.dash.ws import broadcast_sync
 
         broadcast_sync({
             "type": "turn",

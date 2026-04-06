@@ -30,7 +30,7 @@ def cc_turn(
     agent: str = typer.Option("", "--agent", "-a", help="Agent message summary"),
 ):
     """Record a turn in the active Claude Code session."""
-    from nio.claude_code.session_bridge import record_cc_turn, get_cc_status
+    from nio.claude_code.session_bridge import get_cc_status, record_cc_turn
 
     if not session:
         status = get_cc_status()
@@ -64,7 +64,7 @@ def cc_end(
         session = status["session_id"]
 
     result = end_cc_session(session)
-    console.print(f"[green]Session ended.[/green]")
+    console.print("[green]Session ended.[/green]")
     console.print(f"  Task: {result['task_type']}")
     console.print(f"  Turns: {result['turn_count']}")
     if result["slop_avg"] is not None:

@@ -6,9 +6,9 @@ Sprite zigzags platforms, jumps over barrels, knocks boss off, victory.
 
 from __future__ import annotations
 
+import os
 import sys
 import time
-import os
 
 G = "\033[38;2;78;195;115m"     # green
 B = "\033[38;2;110;220;150m"    # bright green

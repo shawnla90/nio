@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
 import frontmatter
 
@@ -27,8 +26,8 @@ def bump_semver(version: str, bump: str = "patch") -> str:
 
 def release_soul(soul_id: str, bump: str = "patch", message: str = "") -> str:
     """Release a new soul version: bump frontmatter, snapshot to DB, commit to git."""
-    from nio.core.soul import get_soul_path, load_soul, body_sha256
     from nio.core.db import get_connection
+    from nio.core.soul import body_sha256, get_soul_path
 
     path = get_soul_path(soul_id)
     if not path or not path.exists():
@@ -71,8 +70,8 @@ def release_soul(soul_id: str, bump: str = "patch", message: str = "") -> str:
 
 def release_voice(voice_id: str, bump: str = "patch", message: str = "") -> str:
     """Release a new voice profile version."""
-    from nio.core.voice import _find_voice
     from nio.core.db import get_connection
+    from nio.core.voice import _find_voice
 
     path = _find_voice(voice_id)
     if not path or not path.exists():
@@ -104,10 +103,11 @@ def release_voice(voice_id: str, bump: str = "patch", message: str = "") -> str:
 
 def diff_souls(ref_a: str, ref_b: str):
     """Print a diff between two soul versions with metric deltas."""
-    from nio.core.soul import load_soul
-    from rich.console import Console
-    from rich.table import Table
     import difflib
+
+    from rich.console import Console
+
+    from nio.core.soul import load_soul
 
     console = Console()
     a = load_soul(ref_a)
@@ -126,7 +126,7 @@ def diff_souls(ref_a: str, ref_b: str):
     )
     diff_text = "".join(diff)
     if diff_text:
-        console.print(f"\n[bold]Prompt diff:[/bold]")
+        console.print("\n[bold]Prompt diff:[/bold]")
         for line in diff_text.splitlines():
             if line.startswith("+") and not line.startswith("+++"):
                 console.print(f"[green]{line}[/green]")
@@ -138,7 +138,7 @@ def diff_souls(ref_a: str, ref_b: str):
         console.print("[dim]No prompt body changes.[/dim]")
 
     # Frontmatter diff
-    console.print(f"\n[bold]Frontmatter changes:[/bold]")
+    console.print("\n[bold]Frontmatter changes:[/bold]")
     a_meta = a.get("metadata", {})
     b_meta = b.get("metadata", {})
     all_keys = sorted(set(list(a_meta.keys()) + list(b_meta.keys())))
@@ -155,9 +155,11 @@ def diff_souls(ref_a: str, ref_b: str):
 
 def diff_voices(ref_a: str, ref_b: str):
     """Print a diff between two voice profile versions."""
-    from nio.core.voice import load_voice
-    from rich.console import Console
     import difflib
+
+    from rich.console import Console
+
+    from nio.core.voice import load_voice
 
     console = Console()
     a = load_voice(ref_a)
@@ -184,7 +186,7 @@ def diff_voices(ref_a: str, ref_b: str):
 
 def checkout_soul(soul_ref: str):
     """Restore a soul version from the DB snapshot."""
-    from nio.core.soul import get_soul_path, _load_from_db, LOCAL_REGISTRY
+    from nio.core.soul import LOCAL_REGISTRY, _load_from_db
 
     if "@" not in soul_ref:
         raise ValueError("Checkout requires soul_id@version format")
@@ -211,8 +213,9 @@ def checkout_soul(soul_ref: str):
 
 def _print_metric_deltas(console, ref_a: str, ref_b: str):
     """Print metric deltas between two soul versions from the turns table."""
-    from nio.core.db import get_connection
     from rich.table import Table
+
+    from nio.core.db import get_connection
 
     def _parse_ref(ref: str):
         if "@" in ref:

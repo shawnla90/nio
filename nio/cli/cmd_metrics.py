@@ -1,7 +1,8 @@
 """Metrics commands."""
 
-import typer
 from typing import Optional
+
+import typer
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -13,9 +14,10 @@ def show_metrics(
     task: Optional[str] = typer.Option(None, help="Filter by task type"),
 ):
     """Show performance metrics for recent sessions."""
-    from nio.core.metrics import query_metrics
     from rich.console import Console
     from rich.table import Table
+
+    from nio.core.metrics import query_metrics
 
     console = Console()
     data = query_metrics(window=window, soul_id=soul, task_type=task)
@@ -49,9 +51,10 @@ def team_metrics(
     window: str = typer.Option("7d", help="Time window"),
 ):
     """Show team-wide performance metrics."""
-    from nio.core.metrics import query_team_metrics
     from rich.console import Console
     from rich.table import Table
+
+    from nio.core.metrics import query_team_metrics
 
     console = Console()
     data = query_team_metrics(team_id=team_id, window=window)

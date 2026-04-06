@@ -9,8 +9,8 @@ from __future__ import annotations
 import typer
 from rich.console import Console
 from rich.panel import Panel
+from rich.prompt import Confirm, Prompt
 from rich.table import Table
-from rich.prompt import Prompt, Confirm
 
 app = typer.Typer(invoke_without_command=True)
 console = Console()
@@ -42,6 +42,7 @@ def setup_default(ctx: typer.Context):
 def setup_mode():
     """Stage 1: Choose global or team mode."""
     from pathlib import Path
+
     import yaml
 
     console.print("\n[bold green]Stage 1: Mode Selection[/bold green]\n")
@@ -104,7 +105,12 @@ def setup_mode():
 @app.command("platforms")
 def setup_platforms():
     """Stage 2: Connect messaging platforms."""
-    from nio.core.platform_probe import probe_all, configure_platform, PLATFORMS, check_whatsapp_bridge
+    from nio.core.platform_probe import (
+        PLATFORMS,
+        check_whatsapp_bridge,
+        configure_platform,
+        probe_all,
+    )
 
     console.print("\n[bold green]Stage 2: Platform Connections[/bold green]\n")
 
@@ -138,11 +144,11 @@ def setup_platforms():
             bridge_path = check_whatsapp_bridge()
             if not bridge_path:
                 console.print("  [yellow]WhatsApp bridge not found.[/yellow]")
-                console.print(f"  Requires Node.js. The bridge lives at hermes-agent/scripts/whatsapp-bridge/")
-                console.print(f"  Run: [green]hermes whatsapp[/green] for guided QR code setup.\n")
+                console.print("  Requires Node.js. The bridge lives at hermes-agent/scripts/whatsapp-bridge/")
+                console.print("  Run: [green]hermes whatsapp[/green] for guided QR code setup.\n")
             else:
                 console.print(f"  [green]Bridge found at: {bridge_path}[/green]")
-                console.print(f"  Run: [green]hermes whatsapp[/green] to scan QR code.\n")
+                console.print("  Run: [green]hermes whatsapp[/green] to scan QR code.\n")
                 configure_platform("whatsapp", "true")
                 console.print("  [green]WhatsApp enabled.[/green]\n")
             continue
@@ -220,7 +226,7 @@ def setup_memory():
     console.print()
 
     if Confirm.ask("  Import these into NIO's eternal memory?", default=True):
-        from nio.core.memory import import_hermes_memories, import_claude_handoffs
+        from nio.core.memory import import_claude_handoffs, import_hermes_memories
         total = 0
         count = import_hermes_memories()
         total += count
@@ -241,9 +247,10 @@ def setup_memory():
 @app.command("verify")
 def setup_verify():
     """Stage 4: Verify everything works."""
-    from nio.core.db import check_db
-    from nio.core.platform_probe import probe_all, check_hermes_installed
     from pathlib import Path
+
+    from nio.core.db import check_db
+    from nio.core.platform_probe import check_hermes_installed, probe_all
 
     console.print("\n[bold green]Stage 4: Verification[/bold green]\n")
 

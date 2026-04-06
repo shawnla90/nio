@@ -31,9 +31,9 @@ async def health():
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     """Now Playing: the home page hero."""
+    from nio.core.metrics import get_recent_slop_avg
     from nio.core.soul import get_active_soul
     from nio.core.voice import get_active_voice
-    from nio.core.metrics import get_recent_slop_avg
 
     return templates.TemplateResponse("index.html", {
         "request": request,

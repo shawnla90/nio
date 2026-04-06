@@ -61,8 +61,9 @@ def _find_voice(voice_id: str) -> Optional[Path]:
 
 
 def _load_from_db(voice_id: str, version: str) -> Optional[dict]:
-    from nio.core.db import get_connection
     import json
+
+    from nio.core.db import get_connection
 
     conn = get_connection()
     row = conn.execute(

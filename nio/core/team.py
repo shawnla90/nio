@@ -5,10 +5,8 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
-import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
 
 def init_team(

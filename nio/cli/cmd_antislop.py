@@ -1,7 +1,8 @@
 """Anti-slop registry commands."""
 
-import typer
 from pathlib import Path
+
+import typer
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -11,8 +12,9 @@ def check_file(
     file_path: Path = typer.Argument(help="File to scan for slop patterns"),
 ):
     """Scan a file and print an anti-slop report."""
-    from nio.core.antislop import detect, score
     from rich.console import Console
+
+    from nio.core.antislop import detect, score
 
     console = Console()
     text = file_path.read_text()
@@ -47,9 +49,9 @@ def score_text(
 @app.command("sync")
 def sync_registry():
     """Regenerate Python + TypeScript validators from the anti-slop registry."""
+    from nio.codegen.render_markdown import render as render_md
     from nio.codegen.render_python import render as render_py
     from nio.codegen.render_typescript import render as render_ts
-    from nio.codegen.render_markdown import render as render_md
 
     py_path = render_py()
     ts_path = render_ts()
@@ -62,9 +64,10 @@ def sync_registry():
 @app.command("list")
 def list_rules():
     """Show all rules in the anti-slop registry."""
-    from nio.core.antislop import load_registry
     from rich.console import Console
     from rich.table import Table
+
+    from nio.core.antislop import load_registry
 
     console = Console()
     rules = load_registry()

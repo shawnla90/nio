@@ -4,8 +4,8 @@ Installed to ~/.hermes/hooks/nio/handler.py during `nio install`.
 This is the thin entry point that Hermes discovers and calls.
 """
 
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.expanduser("~/.nio/lib"))
 

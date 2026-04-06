@@ -1,7 +1,7 @@
 """Voice profile management commands."""
 
+
 import typer
-from typing import Optional
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -9,9 +9,10 @@ app = typer.Typer(no_args_is_help=True)
 @app.command("list")
 def list_voices():
     """List all available voice profiles."""
-    from nio.core.voice import list_voices as _list
     from rich.console import Console
     from rich.table import Table
+
+    from nio.core.voice import list_voices as _list
 
     console = Console()
     voices = _list()
@@ -31,9 +32,10 @@ def list_voices():
 @app.command("show")
 def show_voice(voice_ref: str = typer.Argument(help="Voice ID, optionally @version")):
     """Show a voice profile's full content."""
-    from nio.core.voice import load_voice
     from rich.console import Console
     from rich.markdown import Markdown
+
+    from nio.core.voice import load_voice
 
     console = Console()
     voice = load_voice(voice_ref)

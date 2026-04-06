@@ -14,12 +14,13 @@ def install(
     if ctx.invoked_subcommand is not None:
         return
 
+    from pathlib import Path
+
+    from rich.console import Console
+
     from nio.core.db import init_db
     from nio.core.soul import seed_registry
     from nio.core.voice import seed_voices
-    from rich.console import Console
-    from pathlib import Path
-    import shutil
 
     console = Console()
     nio_home = Path.home() / ".nio"
@@ -184,9 +185,9 @@ def _write_default_config(nio_home, console):
 
 def _install_dash_plist(console):
     """Install launchd plist for the dashboard daemon."""
-    from pathlib import Path
     import subprocess
     import sys
+    from pathlib import Path
 
     plist_dir = Path.home() / "Library" / "LaunchAgents"
     plist_dir.mkdir(parents=True, exist_ok=True)

@@ -2,15 +2,15 @@
 
 import typer
 
-from nio.cli.cmd_soul import app as soul_app
-from nio.cli.cmd_voice import app as voice_app
 from nio.cli.cmd_antislop import app as antislop_app
-from nio.cli.cmd_metrics import app as metrics_app
-from nio.cli.cmd_team import app as team_app
+from nio.cli.cmd_cc import app as cc_app
 from nio.cli.cmd_dash import app as dash_app
 from nio.cli.cmd_install import app as install_app
+from nio.cli.cmd_metrics import app as metrics_app
 from nio.cli.cmd_setup import app as setup_app
-from nio.cli.cmd_cc import app as cc_app
+from nio.cli.cmd_soul import app as soul_app
+from nio.cli.cmd_team import app as team_app
+from nio.cli.cmd_voice import app as voice_app
 
 app = typer.Typer(
     name="nio",
@@ -40,10 +40,10 @@ def status():
         console.print("[yellow]NIO not installed.[/yellow] Run: [green]nio install[/green]")
         raise typer.Exit(0)
 
+    from nio.cli.boot import boot_animated, boot_status
+    from nio.core.metrics import get_recent_slop_avg
     from nio.core.soul import get_active_soul
     from nio.core.voice import get_active_voice
-    from nio.core.metrics import get_recent_slop_avg
-    from nio.cli.boot import boot_animated, boot_status
 
     soul = get_active_soul() or "none"
     voice = get_active_voice() or "none"
@@ -63,8 +63,9 @@ def status():
 @app.command()
 def doctor():
     """Run diagnostics: hook installed? db ok? hermes reachable?"""
-    from nio.core.db import check_db
     from rich.console import Console
+
+    from nio.core.db import check_db
 
     console = Console()
     # Claude Code skill

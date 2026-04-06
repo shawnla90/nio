@@ -14,7 +14,6 @@ import re
 from pathlib import Path
 from typing import Optional
 
-
 # Baked-in rules from registry (generated at sync time)
 RULES: list[dict] = [
     {

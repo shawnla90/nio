@@ -1,7 +1,8 @@
 """Soul management commands."""
 
-import typer
 from typing import Optional
+
+import typer
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -9,9 +10,10 @@ app = typer.Typer(no_args_is_help=True)
 @app.command("list")
 def list_souls():
     """List all available souls in the registry."""
-    from nio.core.soul import list_souls as _list
     from rich.console import Console
     from rich.table import Table
+
+    from nio.core.soul import list_souls as _list
 
     console = Console()
     souls = _list()
@@ -32,9 +34,10 @@ def list_souls():
 @app.command("show")
 def show_soul(soul_ref: str = typer.Argument(help="Soul ID, optionally @version")):
     """Show a soul's full content and metadata."""
-    from nio.core.soul import load_soul
     from rich.console import Console
     from rich.markdown import Markdown
+
+    from nio.core.soul import load_soul
 
     console = Console()
     soul = load_soul(soul_ref)
@@ -80,6 +83,7 @@ def create_soul(
 def edit_soul(soul_id: str = typer.Argument(help="Soul ID to edit")):
     """Open a soul in $EDITOR."""
     import os
+
     from nio.core.soul import get_soul_path
 
     path = get_soul_path(soul_id)

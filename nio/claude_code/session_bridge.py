@@ -71,8 +71,9 @@ def record_cc_turn(
     Returns turn details including slop score and violations.
     """
     import json
-    from nio.core.db import get_connection
+
     from nio.core.antislop import detect, score
+    from nio.core.db import get_connection
 
     slop_score = score(agent_msg)
     violations = []
@@ -199,8 +200,8 @@ def get_cc_status() -> dict:
 
 def get_cc_context() -> dict:
     """Get full context for current Claude Code session including memory."""
-    from nio.core.mode import get_active_mode, get_effective_soul, get_effective_voice
     from nio.core.memory import get_session_context
+    from nio.core.mode import get_active_mode, get_effective_soul, get_effective_voice
 
     mode = get_active_mode()
     soul_id, soul_version = get_effective_soul()

@@ -1,7 +1,7 @@
 """Team mode commands."""
 
+
 import typer
-from typing import Optional
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -19,7 +19,7 @@ def init_team(
     typer.echo(f"Team initialized: {result['team_id']}")
     typer.echo(f"Config: {result['config_path']}")
     typer.echo(f"Soul: {result['soul_path']}")
-    typer.echo(f"\nShare with collaborators:")
+    typer.echo("\nShare with collaborators:")
     typer.echo(f"  nio team join {result.get('origin', '<repo-url>')}")
 
 
@@ -47,9 +47,10 @@ def sync_team():
 @app.command("members")
 def list_members():
     """Show team members and their soul versions."""
-    from nio.core.team import get_members
     from rich.console import Console
     from rich.table import Table
+
+    from nio.core.team import get_members
 
     console = Console()
     members = get_members()
