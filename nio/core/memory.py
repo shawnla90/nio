@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Optional
 
 HERMES_MEMORIES = Path.home() / ".hermes" / "memories"
+CLAUDE_HANDOFFS = Path.home() / ".claude" / "handoffs"
 
 
 def import_hermes_memories() -> int:
@@ -65,6 +66,74 @@ def import_hermes_memories() -> int:
                 """INSERT INTO memory_context (context_id, source, content, content_hash, imported_at)
                    VALUES (?, ?, ?, ?, ?)""",
                 (str(uuid.uuid4()), source, para, content_hash, datetime.utcnow().isoformat()),
+            )
+            count += 1
+
+    conn.commit()
+    conn.close()
+    return count
+
+
+def import_claude_handoffs() -> int:
+    """Import Claude Code handoff files into NIO's memory_context table.
+
+    Scans ~/.claude/handoffs/*.md, parses sections, stores as memory_context
+    with source='claude_handoff'. Deduplicates by content hash.
+    Returns count of new rows inserted.
+    """
+    from nio.core.db import get_connection
+    import re
+
+    if not CLAUDE_HANDOFFS.is_dir():
+        return 0
+
+    conn = get_connection()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS memory_context (
+            context_id    TEXT PRIMARY KEY,
+            source        TEXT NOT NULL,
+            content       TEXT NOT NULL,
+            content_hash  TEXT NOT NULL,
+            imported_at   TIMESTAMP NOT NULL,
+            expires_at    TIMESTAMP,
+            tags          JSON DEFAULT '[]'
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_memory_source ON memory_context(source)")
+
+    count = 0
+    for md_file in sorted(CLAUDE_HANDOFFS.glob("*.md")):
+        if md_file.name.endswith("_done.md"):
+            continue
+
+        content = md_file.read_text().strip()
+        if not content:
+            continue
+
+        # Parse sections from handoff markdown
+        sections = re.split(r'\n## ', content)
+        for section in sections:
+            section = section.strip()
+            if len(section) < 20:
+                continue
+
+            content_hash = hashlib.sha256(section.encode()).hexdigest()
+            existing = conn.execute(
+                "SELECT 1 FROM memory_context WHERE content_hash = ?", (content_hash,)
+            ).fetchone()
+            if existing:
+                continue
+
+            # Extract section title for tags
+            title = section.split("\n")[0].strip("# ").strip()
+            tags = json.dumps(["handoff", title[:50]] if title else ["handoff"])
+
+            conn.execute(
+                """INSERT INTO memory_context
+                   (context_id, source, content, content_hash, imported_at, tags)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (str(uuid.uuid4()), "claude_handoff", section[:2000],
+                 content_hash, datetime.utcnow().isoformat(), tags),
             )
             count += 1
 

@@ -194,9 +194,18 @@ def setup_memory():
         paragraphs = [p.strip() for p in content.split("\n\n") if p.strip()]
         found.append(("USER.md", len(paragraphs), content[:200]))
 
+    # Check Claude Code handoffs
+    handoffs_dir = Path.home() / ".claude" / "handoffs"
+    handoff_count = 0
+    if handoffs_dir.is_dir():
+        handoff_files = [f for f in handoffs_dir.glob("*.md") if not f.name.endswith("_done.md")]
+        handoff_count = len(handoff_files)
+        if handoff_count:
+            found.append(("Claude handoffs", handoff_count, f"{handoff_count} handoff files"))
+
     if not found:
-        console.print("  [dim]No Hermes memories found at ~/.hermes/memories/[/dim]")
-        console.print("  Memory bridge will activate once Hermes has session history.\n")
+        console.print("  [dim]No Hermes memories or Claude handoffs found.[/dim]")
+        console.print("  Memory bridge will activate once you have session history.\n")
         return
 
     table = Table(show_header=True, border_style="dim")
@@ -210,14 +219,21 @@ def setup_memory():
     console.print(table)
     console.print()
 
-    if Confirm.ask("  Import these memories into NIO's eternal memory?", default=True):
-        try:
-            from nio.core.memory import import_hermes_memories
-            count = import_hermes_memories()
-            console.print(f"  [green]Imported {count} memory entries.[/green]\n")
-        except ImportError:
-            # Phase C not yet built, store for later
-            console.print("  [yellow]Memory bridge module not yet available. Will import on next update.[/yellow]\n")
+    if Confirm.ask("  Import these into NIO's eternal memory?", default=True):
+        from nio.core.memory import import_hermes_memories, import_claude_handoffs
+        total = 0
+        count = import_hermes_memories()
+        total += count
+        if count:
+            console.print(f"  [green]Imported {count} Hermes memory entries.[/green]")
+
+        if handoff_count:
+            hcount = import_claude_handoffs()
+            total += hcount
+            if hcount:
+                console.print(f"  [green]Imported {hcount} Claude handoff sections.[/green]")
+
+        console.print(f"  [green]Total: {total} entries imported.[/green]\n")
     else:
         console.print("  [dim]Skipped. Run `nio setup memory` later to import.[/dim]\n")
 
