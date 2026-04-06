@@ -284,6 +284,7 @@ nio voice list|show|apply|diff|release
 nio antislop check|score|sync|list
 nio metrics show|export|team
 nio team init|join|sync|members|release
+nio cc start|turn|end|status|context
 nio dash [start|stop]
 ```
 
