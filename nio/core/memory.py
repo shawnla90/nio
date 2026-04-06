@@ -9,7 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -65,7 +65,7 @@ def import_hermes_memories() -> int:
             conn.execute(
                 """INSERT INTO memory_context (context_id, source, content, content_hash, imported_at)
                    VALUES (?, ?, ?, ?, ?)""",
-                (str(uuid.uuid4()), source, para, content_hash, datetime.utcnow().isoformat()),
+                (str(uuid.uuid4()), source, para, content_hash, datetime.now(timezone.utc).isoformat()),
             )
             count += 1
 
@@ -133,7 +133,7 @@ def import_claude_handoffs() -> int:
                    (context_id, source, content, content_hash, imported_at, tags)
                    VALUES (?, ?, ?, ?, ?, ?)""",
                 (str(uuid.uuid4()), "claude_handoff", section[:2000],
-                 content_hash, datetime.utcnow().isoformat(), tags),
+                 content_hash, datetime.now(timezone.utc).isoformat(), tags),
             )
             count += 1
 

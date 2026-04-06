@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -56,7 +56,7 @@ def release_soul(soul_id: str, bump: str = "patch", message: str = "") -> str:
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             soul_id, new_version, body_sha256(body), body,
-            json.dumps(dict(post.metadata)), datetime.utcnow().isoformat(),
+            json.dumps(dict(post.metadata)), datetime.now(timezone.utc).isoformat(),
             "local", message,
         ),
     )
@@ -92,7 +92,7 @@ def release_voice(voice_id: str, bump: str = "patch", message: str = "") -> str:
            VALUES (?, ?, ?, ?, ?)""",
         (
             voice_id, new_version, post.content,
-            json.dumps(dict(post.metadata)), datetime.utcnow().isoformat(),
+            json.dumps(dict(post.metadata)), datetime.now(timezone.utc).isoformat(),
         ),
     )
     conn.commit()

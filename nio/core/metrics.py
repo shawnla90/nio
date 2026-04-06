@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -72,7 +72,7 @@ def create_session(
         """INSERT INTO sessions (session_id, started_at, soul_id, soul_version,
            voice_id, voice_version, platform, team_id)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-        (session_id, datetime.utcnow().isoformat(), soul_id, soul_version,
+        (session_id, datetime.now(timezone.utc).isoformat(), soul_id, soul_version,
          voice_id, voice_version, platform, team_id),
     )
     conn.commit()
@@ -87,7 +87,7 @@ def end_session(session_id: str):
     conn = get_connection()
     conn.execute(
         "UPDATE sessions SET ended_at = ? WHERE session_id = ?",
-        (datetime.utcnow().isoformat(), session_id),
+        (datetime.now(timezone.utc).isoformat(), session_id),
     )
     conn.commit()
     conn.close()
@@ -122,7 +122,7 @@ def record_turn(
             json.dumps(slop_violations or []),
             json.dumps(tool_calls or []),
             memory_hits, user_signal,
-            datetime.utcnow().isoformat(),
+            datetime.now(timezone.utc).isoformat(),
         ),
     )
     conn.commit()
@@ -134,7 +134,7 @@ def get_recent_slop_avg(hours: int = 24) -> Optional[float]:
     """Get average slop score for the last N hours."""
     from nio.core.db import get_connection
 
-    cutoff = (datetime.utcnow() - timedelta(hours=hours)).isoformat()
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
     conn = get_connection()
     row = conn.execute(
         "SELECT AVG(slop_score) FROM turns WHERE created_at > ? AND slop_score IS NOT NULL",
@@ -152,7 +152,7 @@ def query_metrics(
     """Query aggregate metrics over a time window."""
     from nio.core.db import get_connection
 
-    cutoff = (datetime.utcnow() - _parse_window(window)).isoformat()
+    cutoff = (datetime.now(timezone.utc) - _parse_window(window)).isoformat()
     conn = get_connection()
 
     base_query = """
@@ -210,7 +210,7 @@ def export_metrics(format: str = "json", window: str = "30d"):
     import json as json_mod
     from nio.core.db import get_connection
 
-    cutoff = (datetime.utcnow() - _parse_window(window)).isoformat()
+    cutoff = (datetime.now(timezone.utc) - _parse_window(window)).isoformat()
     conn = get_connection()
     rows = conn.execute(
         "SELECT * FROM turns WHERE created_at > ? ORDER BY created_at",

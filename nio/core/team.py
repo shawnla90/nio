@@ -6,7 +6,7 @@ import json
 import shutil
 import subprocess
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -38,7 +38,7 @@ def init_team(
 id = "{name}"
 name = "{name.replace('-', ' ').title()}"
 origin = ""
-created_at = "{datetime.utcnow().isoformat()}Z"
+created_at = "{datetime.now(timezone.utc).isoformat()}Z"
 
 [soul]
 id = "{soul_id}"
@@ -226,7 +226,7 @@ def _register_team(team_id: str, origin: str, soul_id: str, soul_version: str, c
                (team_id, origin_url, soul_id, soul_version, manifest, last_sync_at)
                VALUES (?, ?, ?, ?, ?, ?)""",
             (team_id, origin, soul_id, soul_version,
-             json.dumps(config), datetime.utcnow().isoformat()),
+             json.dumps(config), datetime.now(timezone.utc).isoformat()),
         )
         conn.commit()
         conn.close()

@@ -268,7 +268,7 @@ def _emit_dashboard_event(session_id: str, slop_score: float, latency_ms: int, v
             "slop_score": slop_score,
             "latency_ms": latency_ms,
             "violations": violations[:5],
-            "created_at": datetime.datetime.utcnow().isoformat(),
+            "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         })
     except ImportError:
         pass  # Dashboard dependencies not installed (e.g., fastapi)
