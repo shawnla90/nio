@@ -18,7 +18,7 @@ Initial release.
 - **CLI**: `nio soul|voice|antislop|metrics|team|cc|dash|install|setup|status|doctor`
 - **Boot animation**: DK-style terminal sequence with 429 barrel dodge and victory
 - **GitHub Actions CI**: Python 3.11/3.12/3.13 matrix with pytest and ruff
-- **135 tests** across 10 test modules
+- **141 tests** across 11 test modules (6 dashboard template tests skipped pending fix)
 
 ### Starter content
 - `nio-core` soul (daily driver, builder-first)
