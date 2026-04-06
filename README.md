@@ -5,7 +5,7 @@
 <h1 align="center">NIO</h1>
 
 <p align="center">
-  <strong>voice DNA. semver souls. anti-slop. the layer hermes never had.</strong>
+  <strong>voice DNA. semver souls. anti-slop. context engineering for CLI agents.</strong>
 </p>
 
 <p align="center">
@@ -25,7 +25,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.11+-4EC373?style=flat-square&logo=python&logoColor=white" alt="Python 3.11+" />
   <img src="https://img.shields.io/badge/license-MIT-4EC373?style=flat-square" alt="MIT License" />
-  <img src="https://img.shields.io/badge/hermes-plugin-4EC373?style=flat-square" alt="Hermes Plugin" />
+  <img src="https://img.shields.io/badge/hermes-optional_bridge-4EC373?style=flat-square" alt="Hermes Bridge" />
   <img src="https://img.shields.io/badge/dashboard-localhost:4242-4EC373?style=flat-square" alt="Dashboard" />
   <img src="https://img.shields.io/badge/claude_code-skill+hooks-4EC373?style=flat-square" alt="Claude Code" />
   <img src="https://img.shields.io/badge/tests-141_passing-4EC373?style=flat-square" alt="Tests" />
@@ -69,26 +69,25 @@ nio setup
 
 Walks you through mode selection (global vs team), platform connections (Discord, Telegram, WhatsApp, Slack, Signal), memory import, and verification. Dashboard starts at `localhost:4242`.
 
-## What NIO adds
+## What NIO does
 
-NIO is a superset of [Hermes Agent](https://github.com/NousResearch/hermes-agent). Hermes gives you the runtime. NIO gives you everything else.
+NIO gives your CLI agent a voice, a memory, and a score for every response it writes.
+
+It works standalone with Claude Code. If you also use [Hermes Agent](https://github.com/NousResearch/hermes-agent), NIO plugs in as a hook with zero patches. But you do not need Hermes to use NIO.
 
 ```
-                    Hermes          NIO
-                    ──────          ───
-gateway             yes             yes (via hermes)
-CLI + TUI           yes             yes (via hermes)
-memory              yes             yes + team-shared
+                    Claude Code     NIO
+                    ───────────     ───
 voice DNA           no              yes (runtime enforcement)
 anti-slop           no              yes (29 patterns, 3 tiers)
 soul versioning     no              yes (semver, diff, rollback)
+session memory      no              yes (SQLite, cross-session resume)
 metrics             no              yes (slop, latency, signals)
-dashboard           no              yes (localhost:4242, autostart)
+dashboard           no              yes (localhost:4242)
 team mode           no              yes (shared souls, git memory)
-claude code         no              yes (skill + hooks)
 ```
 
-Zero patches to the Nous Research fork. NIO installs as a Hermes plugin at `~/.hermes/hooks/nio/`.
+**Optional Hermes bridge**: If you already use Hermes for multi-platform messaging (Discord, Telegram, WhatsApp, Slack, Signal), NIO installs as a plugin at `~/.hermes/hooks/nio/`. Your Hermes conversations and your Claude Code sessions share one metrics store, one soul, one voice. `nio setup memory` imports your existing Hermes memories into NIO's DB. You keep both.
 
 ## CLI-first, no APIs
 
@@ -98,7 +97,17 @@ SQLite is the single source of truth. Every session, every turn, every slop scor
 
 The CLI is the primary interface. The dashboard at `localhost:4242` is a viewer, not a controller. Every action the dashboard shows can be done from the terminal. Every metric it displays comes from the same DB you can query directly.
 
-Claude Code integration works the same way. NIO installs a skill and hooks that write to the same local DB. No sidecar process, no external endpoint. Your Claude Code sessions and your Hermes conversations share one metrics store, one soul, one voice.
+Claude Code integration works the same way. NIO installs a skill and hooks that write to the same local DB. No sidecar process, no external endpoint.
+
+## Built in public
+
+NIO exists because of context engineering. The system that produced it is the system it ships.
+
+Since February 2026, one person on the Claude Code Pro plan ($200/mo, no API) has shipped: 4 full-stack websites, 8 repos, 60+ GitHub stars, and NIO itself. All from the CLI. No throttles hit. Daily crons running Claude Code for automated commits, logs, and maintenance across every repo.
+
+The technique: structured handoffs between sessions, persistent memory in SQLite, soul prompts that keep the agent focused, anti-slop scoring that catches drift before it compounds. NIO packages all of that into something you can install and use today.
+
+This is not a framework built from theory. It is the tooling extracted from a working build practice. The proof is the output.
 
 ## Quick start
 
@@ -131,10 +140,10 @@ nio soul diff nio-core@0.1.0 nio-core@0.2.0
 Every outbound agent message passes through NIO middleware:
 
 ```
-hermes gateway                    claude code
+claude code (primary)             hermes gateway (optional)
       |                                |
       v                                v
-  ~/.hermes/hooks/nio/         ~/.claude/skills/nio/
+  ~/.claude/skills/nio/         ~/.hermes/hooks/nio/
       |                                |
       +──────────────┬─────────────────+
                      |

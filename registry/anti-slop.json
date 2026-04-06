@@ -66,8 +66,8 @@
       "replacement": "",
       "severity": 3,
       "examples": {
-        "bad": ["Here's the thing about Clay tables...", "Here's where it gets interesting."],
-        "good": ["Clay tables let you...", "The scoring model flipped."]
+        "bad": ["Here's the thing about webhook pipelines...", "Here's where it gets interesting."],
+        "good": ["Webhook pipelines let you...", "The scoring model flipped."]
       },
       "tags": ["voice", "drama"]
     },
@@ -224,8 +224,8 @@
       "replacement": "",
       "severity": 2,
       "examples": {
-        "bad": ["No fluff, just tactics.", "No BS guide to Clay."],
-        "good": ["Tactics.", "A guide to Clay."]
+        "bad": ["No fluff, just tactics.", "No BS guide to cron jobs."],
+        "good": ["Tactics.", "A guide to cron jobs."]
       },
       "tags": ["voice", "disclaimers"]
     },
@@ -278,7 +278,7 @@
       "severity": 1,
       "examples": {
         "bad": ["Dropping this resource for anyone who needs it.", "Sharing something I built last week."],
-        "good": ["Resource: how to score ICP fit in Clay.", "I built a scoring model last week. It does X."]
+        "good": ["Resource: how to automate deploys with GitHub Actions.", "I built a scoring model last week. It does X."]
       },
       "tags": ["voice", "opener"]
     },
@@ -295,7 +295,7 @@
       "severity": 1,
       "examples": {
         "bad": ["My new course is live."],
-        "good": ["My new course teaches you to build Clay tables from scratch in 2 hours."]
+        "good": ["My new course teaches you to build CI pipelines from scratch in 2 hours."]
       },
       "tags": ["voice", "value-prop"]
     },
@@ -470,7 +470,7 @@
       "severity": 0,
       "examples": {
         "bad": [],
-        "good": ["Clay --> HubSpot --> Instantly", "step 1 \u27a1\ufe0f step 2"]
+        "good": ["scrape --> score --> notify", "step 1\u27a1\ufe0f step 2"]
       },
       "tags": ["formatting", "natural"]
     },
@@ -504,7 +504,7 @@
       "severity": 0,
       "examples": {
         "bad": [],
-        "good": ["Here's how I set up the Clay table.", "Here's the play for Q2."]
+        "good": ["Here's how I set up the scoring pipeline.", "Here's the play for Q2."]
       },
       "tags": ["voice", "natural"]
     }

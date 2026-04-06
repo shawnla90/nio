@@ -189,7 +189,7 @@ def test_voice_apply_catches_banned_phrase():
 def test_voice_apply_clean_text():
     from nio.core.voice import load_voice, apply
     voice = load_voice("shawn-builder")
-    result = apply(voice, "I built a scoring model in Clay. It updates HubSpot every hour.")
+    result = apply(voice, "I built a scoring model in SQLite. It updates the dashboard every hour.")
     assert result.score == 100.0
 
 

@@ -25,7 +25,7 @@ def test_all_rules_have_required_fields():
 # --- Clean text ---
 
 def test_clean_text_scores_100():
-    text = "I built a scoring model in Clay. It runs every hour and updates HubSpot."
+    text = "I built a scoring model in SQLite. It runs every hour and updates the dashboard."
     assert score(text) == 100.0
     assert detect(text) == []
 
@@ -60,7 +60,7 @@ def test_authority_signaling():
     texts = [
         "The uncomfortable truth about GTM is nobody reads your emails.",
         "Let me be clear: this approach works.",
-        "Here's what nobody tells you about Clay.",
+        "Here's what nobody tells you about cron jobs.",
         "The hard truth is most SDRs quit too early.",
         "Here's the reality of outbound in 2026.",
         "What most people miss is the scoring layer.",
@@ -121,7 +121,7 @@ def test_hype_words():
 def test_no_fluff_disclaimers():
     texts = [
         "No fluff, just tactics.",
-        "No BS guide to Clay.",
+        "No BS guide to SQLite.",
         "No nonsense approach.",
     ]
     for text in texts:
@@ -232,7 +232,7 @@ def test_quotation_overuse():
 # --- Natural tier (should detect but NOT penalize) ---
 
 def test_natural_patterns_no_penalty():
-    text = "Here's how I set it up... Clay --> HubSpot --> Instantly"
+    text = "Here's how I set it up... scrape --> score --> notify"
     s = score(text)
     assert s == 100.0, f"Natural patterns should not penalize. Got score {s}"
 
@@ -244,7 +244,7 @@ def test_natural_patterns_no_penalty():
 
 
 def test_directional_heres_not_penalized():
-    text = "Here's how to build a scoring model in Clay from scratch."
+    text = "Here's how to build a scoring model in SQLite from scratch."
     assert score(text) == 100.0
 
 
@@ -275,7 +275,7 @@ def test_score_clamps_to_zero():
 def test_score_proportional_to_length():
     """Same violation in longer text should score higher (less penalty per token)."""
     short = "This game changer works."
-    long = "I built a full enrichment pipeline with Clay tables, HTTP API calls, Claygent scoring, and HubSpot sync. This game changer of a workflow saves 4 hours a day."
+    long = "I built a full data pipeline with SQLite tables, webhook handlers, automated scoring, and dashboard sync. This game changer of a workflow saves 4 hours a day."
     assert score(long) > score(short)
 
 

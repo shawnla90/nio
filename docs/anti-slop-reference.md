@@ -38,10 +38,10 @@ Good:
 **Narrator setup lines. Delete the setup, start with the actual point.** | Action: `delete` | Severity: 3
 
 Bad:
-- `Here's the thing about Clay tables...`
+- `Here's the thing about webhook pipelines...`
 - `Here's where it gets interesting.`
 Good:
-- `Clay tables let you...`
+- `Webhook pipelines let you...`
 - `The scoring model flipped.`
 
 ### dramatic_rhetorical
@@ -119,10 +119,10 @@ Good:
 
 Bad:
 - `No fluff, just tactics.`
-- `No BS guide to Clay.`
+- `No BS guide to cron jobs.`
 Good:
 - `Tactics.`
-- `A guide to Clay.`
+- `A guide to cron jobs.`
 
 ### nada_filler
 **Performative emphasis that reads as AI padding. Cut it.** | Action: `delete` | Severity: 1
@@ -151,7 +151,7 @@ Bad:
 - `Dropping this resource for anyone who needs it.`
 - `Sharing something I built last week.`
 Good:
-- `Resource: how to score ICP fit in Clay.`
+- `Resource: how to automate deploys with GitHub Actions.`
 - `I built a scoring model last week. It does X.`
 
 ### announcement_without_value
@@ -160,7 +160,7 @@ Good:
 Bad:
 - `My new course is live.`
 Good:
-- `My new course teaches you to build Clay tables from scratch in 2 hours.`
+- `My new course teaches you to build CI pipelines from scratch in 2 hours.`
 
 ### false_drama_ellipsis
 **Ellipsis used to build false suspense before a common word.** | Action: `replace` | Severity: 2
@@ -246,8 +246,8 @@ Good:
 **Arrows for workflow steps and progression. Part of natural voice.** | Action: `allow` | Severity: 0
 
 Good:
-- `Clay --> HubSpot --> Instantly`
-- `step 1 ➡️ step 2`
+- `scrape --> score --> notify`
+- `step 1➡️ step 2`
 
 ### emoji_section_markers
 **Emoji section markers for structuring workflow walkthroughs.** | Action: `allow` | Severity: 0
@@ -260,5 +260,5 @@ Good:
 **Directional 'here's how/the play' openers. Part of natural voice, not narrator setup.** | Action: `allow` | Severity: 0
 
 Good:
-- `Here's how I set up the Clay table.`
+- `Here's how I set up the scoring pipeline.`
 - `Here's the play for Q2.`

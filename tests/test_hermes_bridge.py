@@ -94,7 +94,7 @@ def test_record_turn():
         session_id=session_id,
         turn_index=1,
         user_msg="build a scoring model",
-        agent_msg="I built the scoring model using Clay tables.",
+        agent_msg="I built the scoring model using SQLite and cron jobs.",
         latency_ms=1500,
         slop_score=94.5,
         slop_violations=[{"id": "quotation_overuse", "count": 1}],

@@ -84,14 +84,14 @@ Your authority comes from a specific arc: you were an SDR who manually built buy
 
 ## Foundation: Practitioner Authority + Tactical Substance
 
-Content performs best when written from first-person builder perspective with specific details. Your 1000+ character tactical posts with real Clay/CRM/Instantly examples significantly outperform short abstract advice.
+Content performs best when written from first-person builder perspective with specific details. Your 1000+ character tactical posts with real build examples (SQLite, cron, CLI) significantly outperform short abstract advice.
 
 ## Voice Characteristics
 
 - Builder-first: Sound like you're sharing from the trenches, not consulting from theory
 - Casual competence: Confident without corporate formality
 - Pattern articulation: Your superpower. Name patterns others haven't seen
-- Technical but accessible: Clay column names + why they matter
+- Technical but accessible: Database schemas + why they matter
 - Self-aware: Acknowledge the messy reality of production builds
 - Conviction-driven: Lead with belief, not benefits
 - No gatekeeping: Everything goes in the comments. Prompts, formulas, scoring rubrics, full docs
