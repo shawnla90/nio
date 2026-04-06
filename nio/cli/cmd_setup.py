@@ -135,8 +135,8 @@ def setup_platforms():
     for platform_key, info in PLATFORMS.items():
         probe = next(p for p in probes if p["platform"] == platform_key)
         if probe["configured"]:
-            if not Confirm.ask(f"  {info['display']} is configured. Reconfigure?", default=False):
-                continue
+            console.print(f"  [green]{info['display']}[/green] already connected. [dim]Skipping.[/dim]")
+            continue
 
         if not Confirm.ask(f"  Set up {info['display']}?", default=False):
             continue
@@ -172,7 +172,8 @@ def setup_platforms():
         if info.get("setup_url"):
             console.print(f"  Get your token: [link={info['setup_url']}]{info['setup_url']}[/link]")
         console.print(f"  {info['help']}")
-        token = Prompt.ask(f"  {info['display']} token", password=True)
+        console.print("  [dim](paste your token and press enter)[/dim]")
+        token = Prompt.ask(f"  {info['display']} token")
         if token:
             configure_platform(platform_key, token)
             console.print(f"  [green]{info['display']} configured.[/green]\n")
