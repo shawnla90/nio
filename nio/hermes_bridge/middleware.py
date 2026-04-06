@@ -96,6 +96,38 @@ async def _on_session_start(context: dict) -> None:
 
     context["nio_session_id"] = session_id
 
+    # Session resume: carry context from previous session
+    try:
+        from nio.core.memory import get_session_context, summarize_session
+        from nio.core.db import get_connection
+        import json as _json
+
+        conn = get_connection()
+        prev = conn.execute(
+            "SELECT session_id FROM sessions WHERE ended_at IS NOT NULL "
+            "ORDER BY ended_at DESC LIMIT 1"
+        ).fetchone()
+
+        if prev:
+            prev_id = prev[0]
+            summary = summarize_session(prev_id, conn=conn)
+            session_ctx = get_session_context(last_n=3)
+
+            conn.execute(
+                "UPDATE sessions SET resumed_from = ?, context_snapshot = ? WHERE session_id = ?",
+                (prev_id, _json.dumps(session_ctx), session_id),
+            )
+            conn.commit()
+
+            context["nio_memory_context"] = (
+                f"Previous session: {summary}\n"
+                f"Total sessions: {session_ctx['session_count']}, "
+                f"turns: {session_ctx['turn_count']}"
+            )
+        conn.close()
+    except Exception:
+        pass  # Memory system not yet initialized
+
 
 async def _on_agent_start(context: dict) -> None:
     """Record turn start time, user message, and classify task type."""

@@ -8,7 +8,7 @@ from pathlib import Path
 NIO_HOME = Path.home() / ".nio"
 DB_PATH = NIO_HOME / "nio.db"
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 SCHEMA_V1 = """
 CREATE TABLE IF NOT EXISTS soul_versions (
@@ -80,6 +80,27 @@ CREATE TABLE IF NOT EXISTS schema_info (
 """
 
 
+SCHEMA_V2 = """
+CREATE TABLE IF NOT EXISTS memory_context (
+    context_id    TEXT PRIMARY KEY,
+    source        TEXT NOT NULL,
+    content       TEXT NOT NULL,
+    content_hash  TEXT NOT NULL,
+    imported_at   TIMESTAMP NOT NULL,
+    expires_at    TIMESTAMP,
+    tags          JSON DEFAULT '[]'
+);
+
+CREATE INDEX IF NOT EXISTS idx_memory_source ON memory_context(source);
+"""
+
+# ALTER TABLE migrations (run conditionally)
+MIGRATION_V2 = [
+    "ALTER TABLE sessions ADD COLUMN resumed_from TEXT",
+    "ALTER TABLE sessions ADD COLUMN context_snapshot JSON DEFAULT '{}'",
+]
+
+
 def get_connection() -> sqlite3.Connection:
     """Get a SQLite connection with WAL mode enabled."""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -90,9 +111,25 @@ def get_connection() -> sqlite3.Connection:
 
 
 def init_db():
-    """Initialize the database with the current schema."""
+    """Initialize the database with the current schema, running migrations as needed."""
     conn = get_connection()
     conn.executescript(SCHEMA_V1)
+
+    # Check current version for migrations
+    try:
+        row = conn.execute("SELECT value FROM schema_info WHERE key = 'schema_version'").fetchone()
+        current = int(row[0]) if row else 0
+    except Exception:
+        current = 0
+
+    # Run v2 migration if needed
+    if current < 2:
+        conn.executescript(SCHEMA_V2)
+        for stmt in MIGRATION_V2:
+            try:
+                conn.execute(stmt)
+            except Exception:
+                pass  # Column may already exist
 
     # Record schema version
     conn.execute(
