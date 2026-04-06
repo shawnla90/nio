@@ -32,6 +32,14 @@ app.add_typer(cc_app, name="cc", help="Claude Code session management (start, tu
 @app.command()
 def status():
     """Show active soul, voice, slop average, and gateway state."""
+    from pathlib import Path
+
+    if not Path.home().joinpath(".nio").is_dir():
+        from rich.console import Console
+        console = Console()
+        console.print("[yellow]NIO not installed.[/yellow] Run: [green]nio install[/green]")
+        raise typer.Exit(0)
+
     from nio.core.soul import get_active_soul
     from nio.core.voice import get_active_voice
     from nio.core.metrics import get_recent_slop_avg
@@ -39,8 +47,11 @@ def status():
 
     soul = get_active_soul() or "none"
     voice = get_active_voice() or "none"
-    slop_avg = get_recent_slop_avg()
-    slop_str = f"{slop_avg:.1f}/100" if slop_avg is not None else "no data"
+    try:
+        slop_avg = get_recent_slop_avg()
+        slop_str = f"{slop_avg:.1f}/100" if slop_avg is not None else "no data"
+    except Exception:
+        slop_str = "no data"
 
     hermes = "hooked" if _check_hermes_hook() else "not found"
     dash = ":4242" if _check_dash() else "stopped"
@@ -56,10 +67,14 @@ def doctor():
     from rich.console import Console
 
     console = Console()
+    # Claude Code skill
+    cc_skill = Path.home().joinpath(".claude", "skills", "nio", "SKILL.md").is_file()
+
     checks = {
         "~/.nio/ exists": _check_nio_dir(),
         "nio.db schema": check_db(),
         "Hermes hook installed": _check_hermes_hook(),
+        "Claude Code skill": cc_skill,
         "Dashboard reachable": _check_dash(),
     }
     for label, ok in checks.items():
