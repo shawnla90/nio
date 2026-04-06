@@ -20,7 +20,22 @@ console = Console()
 def setup_default(ctx: typer.Context):
     """Interactive setup wizard. Runs all stages."""
     if ctx.invoked_subcommand is None:
-        console.print()
+        import webbrowser
+
+        # Boot animation
+        try:
+            from nio.cli.boot import boot_animated
+            boot_animated()
+        except Exception:
+            pass
+
+        # Open dashboard in browser
+        console.print("\n  [dim]Opening dashboard at localhost:4242...[/dim]\n")
+        try:
+            webbrowser.open("http://localhost:4242")
+        except Exception:
+            pass
+
         console.print(Panel(
             "[bold green]NIO Setup[/bold green]\n\n"
             "This sets up your agent in 4 steps:\n"
@@ -36,6 +51,15 @@ def setup_default(ctx: typer.Context):
         setup_platforms()
         setup_memory()
         setup_verify()
+
+        console.print(Panel(
+            "[bold green]NIO is ready.[/bold green]\n\n"
+            "  Dashboard:  [link=http://localhost:4242]localhost:4242[/link]\n"
+            "  Status:     [green]nio status[/green]\n"
+            "  Score text: [green]nio antislop score \"your text\"[/green]\n"
+            "  Session:    [green]nio cc start[/green]\n",
+            border_style="green",
+        ))
 
 
 @app.command("mode")
