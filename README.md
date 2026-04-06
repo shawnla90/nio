@@ -29,7 +29,7 @@
 ---
 
 <p align="center">
-  <img src="docs/screenshots/nio-boot.gif" alt="NIO Boot Sequence" width="480" />
+  <img src="docs/screenshots/nio-boot-v2.gif" alt="NIO Boot Sequence" width="480" />
 </p>
 
 <details>
