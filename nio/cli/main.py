@@ -10,6 +10,7 @@ from nio.cli.cmd_metrics import app as metrics_app
 from nio.cli.cmd_setup import app as setup_app
 from nio.cli.cmd_soul import app as soul_app
 from nio.cli.cmd_team import app as team_app
+from nio.cli.cmd_gateway import app as gateway_app
 from nio.cli.cmd_voice import app as voice_app
 
 app = typer.Typer(
@@ -27,6 +28,7 @@ app.add_typer(dash_app, name="dash", help="Web dashboard (start, stop, open)")
 app.add_typer(install_app, name="install", help="Bootstrap NIO (install hooks, seed registry, start dashboard)")
 app.add_typer(setup_app, name="setup", help="Interactive setup wizard (mode, platforms, memory, verify)")
 app.add_typer(cc_app, name="cc", help="Claude Code session management (start, turn, end, status, context)")
+app.add_typer(gateway_app, name="gateway", help="Message gateway (WhatsApp/Discord via local models)")
 
 
 @app.command()
