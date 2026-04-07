@@ -377,20 +377,29 @@ async def api_chat(request: Request):
                                 full_response += text
                                 yield f"data: {json.dumps({'type': 'text', 'text': text})}\n\n"
 
-                    # Extract text from result event
+                    # Extract text from result event (final response)
                     if event.get("type") == "result":
                         result_text = event.get("result", "")
                         if result_text and not full_response:
                             full_response = result_text
                             yield f"data: {json.dumps({'type': 'text', 'text': result_text})}\n\n"
-
-                # Heartbeat
-                yield f"data: {json.dumps({'type': 'heartbeat'})}\n\n"
+                        elif result_text and result_text != full_response:
+                            # Result may have additional text
+                            extra = result_text[len(full_response):]
+                            if extra:
+                                full_response = result_text
+                                yield f"data: {json.dumps({'type': 'text', 'text': extra})}\n\n"
 
         except asyncio.TimeoutError:
             yield f"data: {json.dumps({'type': 'error', 'message': 'Timeout waiting for response'})}\n\n"
         except Exception as e:
             yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+
+        # Wait for process to finish
+        try:
+            await asyncio.wait_for(proc.wait(), timeout=10)
+        except Exception:
+            pass
 
         # Score the full response
         slop_score = 100.0
@@ -413,10 +422,14 @@ async def api_chat(request: Request):
 
         # Clean up
         try:
-            proc.terminate()
-            await asyncio.wait_for(proc.wait(), timeout=5)
+            if proc.returncode is None:
+                proc.terminate()
+                await asyncio.wait_for(proc.wait(), timeout=5)
         except Exception:
-            proc.kill()
+            try:
+                proc.kill()
+            except ProcessLookupError:
+                pass
 
     return StreamingResponse(
         stream_response(),
