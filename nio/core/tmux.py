@@ -10,7 +10,7 @@ import subprocess
 from pathlib import Path
 
 SESSION_NAME = "nio"
-CLAUDE_BIN = "/opt/homebrew/bin/claude"
+CLAUDE_BIN = __import__("shutil").which("claude") or str(Path.home() / ".local" / "bin" / "claude")
 NIO_HOME = Path.home() / ".nio"
 
 

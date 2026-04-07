@@ -314,7 +314,8 @@ async def api_chat(request: Request):
         pass
 
     # Build Claude CLI args
-    claude_bin = "/opt/homebrew/bin/claude"
+    import shutil
+    claude_bin = shutil.which("claude") or str(Path.home() / ".local" / "bin" / "claude")
     args = [
         claude_bin,
         "-p", message,
@@ -333,7 +334,11 @@ async def api_chat(request: Request):
             *args,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
-            env={**__import__("os").environ, "CLAUDECODE": ""},
+            env={
+                **__import__("os").environ,
+                "CLAUDECODE": "",
+                "PATH": f"{Path.home() / '.local' / 'bin'}:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin",
+            },
         )
 
         full_response = ""
