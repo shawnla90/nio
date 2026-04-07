@@ -9,18 +9,30 @@ app = typer.Typer(invoke_without_command=True)
 def gateway_default(ctx: typer.Context):
     """NIO Gateway: WhatsApp/Discord via local models."""
     if ctx.invoked_subcommand is None:
-        ctx.invoke(gateway_start)
+        ctx.invoke(discord)
 
 
-@app.command("start")
-def gateway_start(
+@app.command("whatsapp")
+def whatsapp(
     model: str = typer.Option("gemma2", "--model", "-m", help="Ollama model name"),
     ollama_host: str = typer.Option("http://localhost:11434", "--ollama-host", help="Ollama API host"),
     bridge_url: str = typer.Option("http://localhost:3000", "--bridge", "-b", help="WhatsApp bridge URL"),
 ):
-    """Start the NIO gateway (polls WhatsApp bridge, responds via Ollama)."""
+    """Start the WhatsApp gateway (polls bridge, responds via Ollama)."""
     from nio.gateway.run import start
     start(model=model, ollama_host=ollama_host, bridge_url=bridge_url)
+
+
+@app.command("discord")
+def discord(
+    model: str = typer.Option("gemma3:4b", "--model", "-m", help="Ollama model name"),
+    ollama_host: str = typer.Option("http://localhost:11434", "--ollama-host", help="Ollama API host"),
+    token: str = typer.Option("", "--token", "-t", help="Discord bot token (reads from .env if empty)"),
+    allowed_users: str = typer.Option("", "--allowed-users", help="Comma-separated Discord user IDs"),
+):
+    """Start the Discord gateway (bot responds via Ollama)."""
+    from nio.gateway.discord_bot import start
+    start(model=model, ollama_host=ollama_host, token=token, allowed_users=allowed_users)
 
 
 @app.command("status")

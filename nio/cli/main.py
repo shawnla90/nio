@@ -5,12 +5,12 @@ import typer
 from nio.cli.cmd_antislop import app as antislop_app
 from nio.cli.cmd_cc import app as cc_app
 from nio.cli.cmd_dash import app as dash_app
+from nio.cli.cmd_gateway import app as gateway_app
 from nio.cli.cmd_install import app as install_app
 from nio.cli.cmd_metrics import app as metrics_app
 from nio.cli.cmd_setup import app as setup_app
 from nio.cli.cmd_soul import app as soul_app
 from nio.cli.cmd_team import app as team_app
-from nio.cli.cmd_gateway import app as gateway_app
 from nio.cli.cmd_voice import app as voice_app
 
 app = typer.Typer(
@@ -29,6 +29,103 @@ app.add_typer(install_app, name="install", help="Bootstrap NIO (install hooks, s
 app.add_typer(setup_app, name="setup", help="Interactive setup wizard (mode, platforms, memory, verify)")
 app.add_typer(cc_app, name="cc", help="Claude Code session management (start, turn, end, status, context)")
 app.add_typer(gateway_app, name="gateway", help="Message gateway (WhatsApp/Discord via local models)")
+
+
+@app.command()
+def start():
+    """Start NIO: boot animation, tmux session, dashboard, tunnel."""
+    import subprocess
+    import webbrowser
+
+    from rich.console import Console
+    from rich.panel import Panel
+
+    from nio.cli.boot import boot_animated
+    from nio.core.tmux import is_running as tmux_running
+    from nio.core.tmux import start_session
+
+    console = Console()
+
+    # DK boot animation
+    boot_animated()
+
+    # Ensure installed
+    if not _check_nio_dir():
+        console.print("[yellow]Running nio install first...[/yellow]")
+        from nio.cli.cmd_install import install
+        install(ctx=None, migrate_hermes=False)
+
+    # Start tmux Claude Code session
+    if tmux_running():
+        console.print("  [green]tmux session 'nio' already running[/green]")
+    else:
+        started = start_session()
+        if started:
+            console.print("  [green]tmux session 'nio' started[/green]")
+        else:
+            console.print("  [yellow]Could not start tmux session[/yellow]")
+
+    # Dashboard (managed by launchd, should be running)
+    dash_ok = _check_dash()
+    if dash_ok:
+        console.print("  [green]Dashboard running at localhost:4242[/green]")
+    else:
+        console.print("  [yellow]Dashboard not responding. Run: nio dash start[/yellow]")
+
+    # Cloudflare tunnel
+    tunnel_url = ""
+    try:
+        # Check if tunnel already running
+        result = subprocess.run(["pgrep", "-f", "cloudflared"], capture_output=True)
+        if result.returncode == 0:
+            console.print("  [green]Cloudflare tunnel already running[/green]")
+            tunnel_url = "nio.shawnos.ai"
+        else:
+            console.print("  [dim]Starting Cloudflare tunnel...[/dim]")
+            subprocess.Popen(
+                ["cloudflared", "tunnel", "run", "nio-chat"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            tunnel_url = "nio.shawnos.ai"
+            console.print(f"  [green]Tunnel started: https://{tunnel_url}[/green]")
+    except FileNotFoundError:
+        console.print("  [dim]cloudflared not installed. Local only.[/dim]")
+
+    console.print()
+    panel_lines = [
+        "[bold green]NIO is live.[/bold green]\n",
+        "  Dashboard:  [link=http://localhost:4242]localhost:4242[/link]",
+        "  Chat:       [link=http://localhost:4242/chat]localhost:4242/chat[/link]",
+    ]
+    if tunnel_url:
+        panel_lines.append(f"  Remote:     [link=https://{tunnel_url}/chat]https://{tunnel_url}/chat[/link]")
+    panel_lines.append("  Session:    [green]tmux attach -t nio[/green]")
+
+    console.print(Panel("\n".join(panel_lines), border_style="green"))
+
+    webbrowser.open("http://localhost:4242/chat")
+
+
+@app.command()
+def stop():
+    """Stop NIO: kill tmux session and tunnel."""
+    import subprocess
+
+    from rich.console import Console
+
+    from nio.core.tmux import kill_session
+
+    console = Console()
+
+    if kill_session():
+        console.print("  [green]tmux session killed[/green]")
+    else:
+        console.print("  [dim]No tmux session running[/dim]")
+
+    subprocess.run(["pkill", "-f", "cloudflared tunnel run"], capture_output=True)
+    console.print("  [green]Tunnel stopped[/green]")
+    console.print("  [dim]Dashboard stays running (managed by launchd)[/dim]")
 
 
 @app.command()

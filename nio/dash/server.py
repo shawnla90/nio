@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 
 from fastapi import FastAPI, Request, WebSocket
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -273,6 +273,154 @@ async def learn_page(request: Request):
     return templates.TemplateResponse(
         request=request, name="learn.html",
         context=_ctx(request, "learn"),
+    )
+
+
+@app.get("/chat", response_class=HTMLResponse)
+async def chat_page(request: Request):
+    """Chat interface: talk to your agent via Claude Code."""
+    from nio.core.soul import get_active_soul
+    soul = get_active_soul() or "nio-core"
+    return templates.TemplateResponse(
+        request=request, name="chat.html",
+        context=_ctx(request, "chat", soul=soul),
+    )
+
+
+@app.post("/api/chat")
+async def api_chat(request: Request):
+    """SSE endpoint: spawn Claude Code, stream response, score for slop."""
+    import asyncio
+
+    data = await request.json()
+    message = data.get("message", "")
+    resume_session = data.get("session_id")
+
+    if not message:
+        return JSONResponse({"error": "message required"}, status_code=400)
+
+    # Build soul prompt path
+    soul_path = Path.home() / ".nio" / "active" / "soul-prompt.md"
+    try:
+        from nio.core.soul import get_active_soul, load_soul
+        ref = get_active_soul() or ""
+        soul_id = ref.split("@")[0] if ref else ""
+        if soul_id:
+            soul_data = load_soul(soul_id)
+            if soul_data and soul_data.get("body"):
+                soul_path.parent.mkdir(parents=True, exist_ok=True)
+                soul_path.write_text(soul_data["body"])
+    except Exception:
+        pass
+
+    # Build Claude CLI args
+    claude_bin = "/opt/homebrew/bin/claude"
+    args = [
+        claude_bin,
+        "-p", message,
+        "--output-format", "stream-json",
+        "--verbose",
+        "--max-turns", "10",
+    ]
+    if soul_path.exists() and soul_path.stat().st_size > 0:
+        args.extend(["--append-system-prompt-file", str(soul_path)])
+    if resume_session:
+        args.extend(["--resume", resume_session])
+
+    async def stream_response():
+        # Spawn Claude Code
+        proc = await asyncio.create_subprocess_exec(
+            *args,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            env={**__import__("os").environ, "CLAUDECODE": ""},
+        )
+
+        full_response = ""
+        captured_session_id = None
+
+        try:
+            buffer = ""
+            while True:
+                chunk = await asyncio.wait_for(proc.stdout.read(4096), timeout=180)
+                if not chunk:
+                    break
+
+                buffer += chunk.decode()
+                lines = buffer.split("\n")
+                buffer = lines.pop()
+
+                for line in lines:
+                    if not line.strip():
+                        continue
+                    try:
+                        event = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+
+                    # Capture session ID
+                    if not captured_session_id and event.get("session_id"):
+                        captured_session_id = event["session_id"]
+                        yield f"data: {json.dumps({'type': 'session_id', 'session_id': captured_session_id})}\n\n"
+
+                    # Extract text from assistant messages
+                    if event.get("type") == "assistant":
+                        msg = event.get("message", {})
+                        for block in msg.get("content", []):
+                            if block.get("type") == "text" and block.get("text"):
+                                text = block["text"]
+                                full_response += text
+                                yield f"data: {json.dumps({'type': 'text', 'text': text})}\n\n"
+
+                    # Extract text from result event
+                    if event.get("type") == "result":
+                        result_text = event.get("result", "")
+                        if result_text and not full_response:
+                            full_response = result_text
+                            yield f"data: {json.dumps({'type': 'text', 'text': result_text})}\n\n"
+
+                # Heartbeat
+                yield f"data: {json.dumps({'type': 'heartbeat'})}\n\n"
+
+        except asyncio.TimeoutError:
+            yield f"data: {json.dumps({'type': 'error', 'message': 'Timeout waiting for response'})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+
+        # Score the full response
+        slop_score = 100.0
+        try:
+            from nio.core.antislop import score
+            slop_score = score(full_response) if full_response else 100.0
+        except Exception:
+            pass
+
+        # Record turn
+        try:
+            from nio.claude_code.session_bridge import record_cc_turn, start_cc_session
+            nio_session = start_cc_session()
+            record_cc_turn(nio_session, user_msg=message, agent_msg=full_response)
+        except Exception:
+            pass
+
+        yield f"data: {json.dumps({'type': 'done', 'slop_score': slop_score})}\n\n"
+        yield "data: [DONE]\n\n"
+
+        # Clean up
+        try:
+            proc.terminate()
+            await asyncio.wait_for(proc.wait(), timeout=5)
+        except Exception:
+            proc.kill()
+
+    return StreamingResponse(
+        stream_response(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )
 
 

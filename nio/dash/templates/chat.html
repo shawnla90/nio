@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title_suffix %} - Chat{% endblock %}
+
+{% block content %}
+<div class="chat-container" id="chat-app">
+    <div class="chat-header">
+        <span class="chat-soul">{{ soul }}</span>
+        <span class="chat-status" id="chat-status">ready</span>
+    </div>
+
+    <div class="chat-messages" id="chat-messages">
+        <div class="chat-welcome">
+            <p>Chat with your agent. Responses are scored for quality.</p>
+            <p class="dim">Soul: {{ soul }} | Powered by Claude Code</p>
+        </div>
+    </div>
+
+    <div class="chat-input-bar">
+        <input type="text" id="chat-input" class="chat-input" placeholder="Type a message..." autocomplete="off" />
+        <button id="chat-send" class="chat-send-btn" onclick="sendMessage()">Send</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const messagesEl = document.getElementById('chat-messages');
+const inputEl = document.getElementById('chat-input');
+const statusEl = document.getElementById('chat-status');
+const sendBtn = document.getElementById('chat-send');
+let sessionId = null;
+let sending = false;
+
+inputEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey && !sending) {
+        e.preventDefault();
+        sendMessage();
+    }
+});
+
+function addMessage(role, text, slopScore) {
+    const div = document.createElement('div');
+    div.className = `chat-msg chat-msg-${role}`;
+
+    let html = `<div class="chat-msg-text">${escapeHtml(text)}</div>`;
+    if (role === 'assistant' && slopScore !== undefined) {
+        const color = slopScore >= 90 ? 'var(--green)' : slopScore >= 70 ? 'var(--yellow)' : 'var(--red)';
+        html += `<span class="chat-slop-badge" style="color:${color}">${Math.round(slopScore)}/100</span>`;
+    }
+
+    div.innerHTML = html;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return div;
+}
+
+function addStreamingMessage() {
+    const div = document.createElement('div');
+    div.className = 'chat-msg chat-msg-assistant';
+    div.innerHTML = '<div class="chat-msg-text" id="streaming-text"></div>';
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return div;
+}
+
+function escapeHtml(text) {
+    const d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML;
+}
+
+async function sendMessage() {
+    const text = inputEl.value.trim();
+    if (!text || sending) return;
+
+    sending = true;
+    inputEl.value = '';
+    sendBtn.disabled = true;
+    statusEl.textContent = 'thinking...';
+
+    addMessage('user', text);
+
+    const streamDiv = addStreamingMessage();
+    const streamText = streamDiv.querySelector('#streaming-text');
+    let fullResponse = '';
+
+    try {
+        const body = JSON.stringify({
+            message: text,
+            session_id: sessionId,
+        });
+
+        const resp = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: body,
+        });
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+                if (!line.startsWith('data: ')) continue;
+                const data = line.slice(6);
+                if (data === '[DONE]') continue;
+
+                try {
+                    const event = JSON.parse(data);
+
+                    if (event.type === 'text') {
+                        fullResponse += event.text;
+                        streamText.textContent = fullResponse;
+                        messagesEl.scrollTop = messagesEl.scrollHeight;
+                    } else if (event.type === 'session_id') {
+                        sessionId = event.session_id;
+                    } else if (event.type === 'done') {
+                        // Replace streaming div with final message + slop badge
+                        streamDiv.remove();
+                        addMessage('assistant', fullResponse, event.slop_score);
+                    } else if (event.type === 'error') {
+                        streamText.textContent = 'Error: ' + event.message;
+                    }
+                } catch {}
+            }
+        }
+
+        // If no 'done' event came, finalize anyway
+        if (fullResponse && streamDiv.parentNode) {
+            streamDiv.remove();
+            addMessage('assistant', fullResponse);
+        }
+
+    } catch (err) {
+        streamDiv.remove();
+        addMessage('assistant', 'Connection error: ' + err.message);
+    }
+
+    sending = false;
+    sendBtn.disabled = false;
+    statusEl.textContent = 'ready';
+    inputEl.focus();
+}
+
+// Heartbeat to keep Cloudflare tunnel alive
+setInterval(() => {
+    fetch('/health').catch(() => {});
+}, 15000);
+</script>
+{% endblock %}
