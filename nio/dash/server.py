@@ -291,6 +291,8 @@ async def chat_page(request: Request):
 async def api_chat(request: Request):
     """SSE endpoint: spawn Claude Code, stream response, score for slop."""
     import asyncio
+    import os
+    import shutil
 
     data = await request.json()
     message = data.get("message", "")
@@ -314,7 +316,6 @@ async def api_chat(request: Request):
         pass
 
     # Build Claude CLI args
-    import shutil
     claude_bin = shutil.which("claude") or str(Path.home() / ".local" / "bin" / "claude")
     args = [
         claude_bin,
@@ -322,38 +323,97 @@ async def api_chat(request: Request):
         "--output-format", "stream-json",
         "--verbose",
         "--max-turns", "10",
+        "--permission-mode", "bypassPermissions",
     ]
     if soul_path.exists() and soul_path.stat().st_size > 0:
         args.extend(["--append-system-prompt-file", str(soul_path)])
     if resume_session:
         args.extend(["--resume", resume_session])
 
+    # Build clean env: remove CLAUDECODE so Claude doesn't think it's nested
+    proc_env = os.environ.copy()
+    proc_env.pop("CLAUDECODE", None)
+    proc_env["PATH"] = f"{Path.home() / '.local' / 'bin'}:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+
+    HEARTBEAT_INTERVAL = 15  # seconds
+
     async def stream_response():
-        # Spawn Claude Code
         proc = await asyncio.create_subprocess_exec(
             *args,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
-            env={
-                **__import__("os").environ,
-                "CLAUDECODE": "",
-                "PATH": f"{Path.home() / '.local' / 'bin'}:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin",
-            },
+            env=proc_env,
         )
 
         full_response = ""
-        captured_session_id = None
+        # If resuming, keep the original session ID so the client reuses it
+        captured_session_id = resume_session
+        heartbeat_task = None
+
+        # Heartbeat queue: background task pushes heartbeats, generator yields them
+        heartbeat_queue: asyncio.Queue[str] = asyncio.Queue()
+
+        async def heartbeat_sender():
+            try:
+                while True:
+                    await asyncio.sleep(HEARTBEAT_INTERVAL)
+                    await heartbeat_queue.put(
+                        f"data: {json.dumps({'type': 'heartbeat'})}\n\n"
+                    )
+            except asyncio.CancelledError:
+                pass
+
+        heartbeat_task = asyncio.create_task(heartbeat_sender())
+
+        def _parse_event(event):
+            nonlocal full_response, captured_session_id
+            chunks = []
+
+            # Capture session ID from any event that has it
+            if not captured_session_id and event.get("session_id"):
+                captured_session_id = event["session_id"]
+                chunks.append(
+                    f"data: {json.dumps({'type': 'session_id', 'session_id': captured_session_id})}\n\n"
+                )
+
+            # Extract text from assistant messages
+            if event.get("type") == "assistant":
+                msg = event.get("message", {})
+                for block in msg.get("content", []):
+                    if block.get("type") == "text" and block.get("text"):
+                        text = block["text"]
+                        full_response += text
+                        chunks.append(
+                            f"data: {json.dumps({'type': 'text', 'text': text})}\n\n"
+                        )
+
+            # Result event: fallback if assistant didn't fire
+            if event.get("type") == "result":
+                result_text = event.get("result", "")
+                if result_text and not full_response:
+                    full_response = result_text
+                    chunks.append(
+                        f"data: {json.dumps({'type': 'text', 'text': result_text})}\n\n"
+                    )
+
+            return chunks
 
         try:
             buffer = ""
             while True:
-                chunk = await asyncio.wait_for(proc.stdout.read(4096), timeout=180)
+                # Read stdout with per-chunk timeout (3 min inactivity = kill)
+                try:
+                    chunk = await asyncio.wait_for(proc.stdout.read(4096), timeout=180)
+                except asyncio.TimeoutError:
+                    yield f"data: {json.dumps({'type': 'error', 'message': 'Timeout: no output for 3 minutes'})}\n\n"
+                    break
+
                 if not chunk:
                     break
 
                 buffer += chunk.decode()
                 lines = buffer.split("\n")
-                buffer = lines.pop()
+                buffer = lines.pop()  # keep incomplete last line
 
                 for line in lines:
                     if not line.strip():
@@ -362,38 +422,32 @@ async def api_chat(request: Request):
                         event = json.loads(line)
                     except json.JSONDecodeError:
                         continue
+                    for sse_chunk in _parse_event(event):
+                        yield sse_chunk
 
-                    # Capture session ID
-                    if not captured_session_id and event.get("session_id"):
-                        captured_session_id = event["session_id"]
-                        yield f"data: {json.dumps({'type': 'session_id', 'session_id': captured_session_id})}\n\n"
+                # Drain any pending heartbeats
+                while not heartbeat_queue.empty():
+                    yield heartbeat_queue.get_nowait()
 
-                    # Extract text from assistant messages
-                    if event.get("type") == "assistant":
-                        msg = event.get("message", {})
-                        for block in msg.get("content", []):
-                            if block.get("type") == "text" and block.get("text"):
-                                text = block["text"]
-                                full_response += text
-                                yield f"data: {json.dumps({'type': 'text', 'text': text})}\n\n"
+            # Flush remaining buffer after stdout closes
+            if buffer.strip():
+                try:
+                    event = json.loads(buffer)
+                    for sse_chunk in _parse_event(event):
+                        yield sse_chunk
+                except json.JSONDecodeError:
+                    pass
 
-                    # Extract text from result event (final response)
-                    if event.get("type") == "result":
-                        result_text = event.get("result", "")
-                        if result_text and not full_response:
-                            full_response = result_text
-                            yield f"data: {json.dumps({'type': 'text', 'text': result_text})}\n\n"
-                        elif result_text and result_text != full_response:
-                            # Result may have additional text
-                            extra = result_text[len(full_response):]
-                            if extra:
-                                full_response = result_text
-                                yield f"data: {json.dumps({'type': 'text', 'text': extra})}\n\n"
-
-        except asyncio.TimeoutError:
-            yield f"data: {json.dumps({'type': 'error', 'message': 'Timeout waiting for response'})}\n\n"
         except Exception as e:
             yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+
+        # Cancel heartbeat
+        if heartbeat_task:
+            heartbeat_task.cancel()
+            try:
+                await heartbeat_task
+            except asyncio.CancelledError:
+                pass
 
         # Wait for process to finish
         try:
@@ -420,11 +474,13 @@ async def api_chat(request: Request):
         yield f"data: {json.dumps({'type': 'done', 'slop_score': slop_score})}\n\n"
         yield "data: [DONE]\n\n"
 
-        # Clean up
+        # Clean up process
         try:
             if proc.returncode is None:
                 proc.terminate()
                 await asyncio.wait_for(proc.wait(), timeout=5)
+        except ProcessLookupError:
+            pass
         except Exception:
             try:
                 proc.kill()

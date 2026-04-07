@@ -182,6 +182,14 @@ def _write_default_config(nio_home, console):
         )
     console.print("  [green]OK[/green]  config.yaml")
 
+    # Check cloudflared availability
+    import shutil
+    if not shutil.which("cloudflared"):
+        console.print("  [yellow]NOTE[/yellow]  cloudflared not found (needed for remote access)")
+        console.print("         Install: brew install cloudflared")
+    else:
+        console.print("  [green]OK[/green]  cloudflared available")
+
 
 def _install_dash_plist(console):
     """Install launchd plist for the dashboard daemon."""

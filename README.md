@@ -3,17 +3,18 @@
 </p>
 
 <p align="center">
-  <strong>Track, score, and version every response your CLI agent writes.</strong>
+  <strong>Your CLI agent, accessible from anywhere.</strong>
 </p>
 
 <p align="center">
-  <em>voice DNA. semver souls. anti-slop.</em>
+  <em>voice DNA. semver souls. anti-slop. remote chat.</em>
 </p>
 
 <p align="center">
   <a href="#install">Install</a> &bull;
   <a href="#what-nio-does">What It Does</a> &bull;
   <a href="#quick-start">Quick Start</a> &bull;
+  <a href="#remote-access">Remote Access</a> &bull;
   <a href="#anti-slop">Anti-Slop</a> &bull;
   <a href="#souls">Souls</a> &bull;
   <a href="#persistent-memory">Memory</a> &bull;
@@ -26,6 +27,8 @@
   <img src="https://img.shields.io/badge/license-MIT-4EC373?style=flat-square" alt="MIT License" />
   <img src="https://img.shields.io/badge/claude_code-skill+hooks-4EC373?style=flat-square" alt="Claude Code" />
   <img src="https://img.shields.io/badge/dashboard-localhost:4242-4EC373?style=flat-square" alt="Dashboard" />
+  <img src="https://img.shields.io/badge/cloudflare-tunnel-4EC373?style=flat-square&logo=cloudflare&logoColor=white" alt="Cloudflare Tunnel" />
+  <img src="https://img.shields.io/badge/sqlite-WAL-4EC373?style=flat-square&logo=sqlite&logoColor=white" alt="SQLite" />
 </p>
 
 ---
@@ -49,17 +52,18 @@ Then run the setup wizard:
 nio setup
 ```
 
-Walks you through mode selection (global vs team), platform connections (Discord, Telegram, WhatsApp, Slack, Signal), memory import, and verification. Dashboard starts at `localhost:4242`.
+Five steps: mode selection, access (local or remote via Cloudflare tunnel), platform connections, memory import, and verification. Dashboard starts at `localhost:4242`. Remote access puts it on your phone.
 
 ## What NIO does
 
-NIO is a middleware layer for Claude Code that scores every response for quality, enforces a consistent voice, and remembers across sessions.
+NIO wraps Claude Code with quality scoring, voice enforcement, persistent memory, and remote access. Run `nio start` on your Mac, open the chat from your phone.
 
+- **Remote chat**: Talk to your Claude Code agent from your phone, tablet, or any browser. Cloudflare tunnel provides secure HTTPS without exposing ports.
 - **Anti-slop scoring**: 29 patterns across 3 tiers catch AI writing tells before they ship. Every turn gets a 0-100 score.
 - **Soul system**: Versioned personality prompts with semver, diff, and rollback. Treat your agent's behavior like software.
 - **Voice profiles**: Tone rules, banned phrases, formatting constraints. Applied at runtime to every outbound message.
 - **Persistent memory**: SQLite-backed session resume. New sessions carry context from previous ones automatically.
-- **Dashboard**: `localhost:4242` shows quality scores, session history, memory browser, and platform connections.
+- **Dashboard**: `localhost:4242` with chat, quality scores, session history, memory browser, soul viewer, and platform connections.
 
 Works standalone with Claude Code. Optionally bridges to [Hermes Agent](https://github.com/NousResearch/hermes-agent) for multi-platform messaging (Discord, WhatsApp, Telegram).
 
@@ -72,6 +76,28 @@ SQLite is the single source of truth. Every session, every turn, every slop scor
 The CLI is the primary interface. The dashboard at `localhost:4242` is a viewer, not a controller. Every action the dashboard shows can be done from the terminal. Every metric it displays comes from the same DB you can query directly.
 
 Claude Code integration works the same way. NIO installs a skill and hooks that write to the same local DB. No sidecar process, no external endpoint.
+
+## Remote access
+
+NIO runs on your Mac. Cloudflare Tunnel makes it reachable from anywhere without opening ports or managing certs.
+
+```bash
+nio setup access     # choose local or remote
+nio start            # boots tmux + dashboard + tunnel
+```
+
+The setup wizard handles everything: detecting cloudflared, authenticating, creating or selecting a tunnel, and binding to your domain. Two modes:
+
+- **Custom domain**: Point `nio.yourdomain.com` at your tunnel. Stable URL, your brand.
+- **Quick tunnel**: Auto-generated `.trycloudflare.com` URL. No config, but the URL changes on restart.
+
+Once running, open `https://your-domain/chat` on your phone. The chat streams Claude Code responses in real-time via SSE, with session continuity across messages and slop scoring on every response.
+
+```bash
+nio stop             # kills tmux session + tunnel, dashboard stays up
+```
+
+The dashboard stays running via launchd. The tunnel and Claude Code session are the things that start and stop.
 
 ## Background
 
@@ -92,6 +118,9 @@ Sessions survive shutdown. When a new session starts, NIO summarizes the previou
 ## Quick start
 
 ```bash
+# boot everything: animation + tmux + dashboard + tunnel
+nio start
+
 # what's running
 nio status
 
@@ -125,19 +154,23 @@ claude code (primary)             hermes gateway (optional)
       v                                v
   ~/.claude/skills/nio/         ~/.hermes/hooks/nio/
       |                                |
-      +──────────────┬─────────────────+
-                     |
-              NIO middleware
-              |    |    |    |
-              v    v    v    v
-           soul  voice  slop  metrics
-              |    |    |    |
-              v    v    v    v
-           ~/.nio/nio.db (SQLite + WAL)
-                     |
-                     v
-              localhost:4242
-              (FastAPI + HTMX)
+      +----------------+-----------------+
+                       |
+                NIO middleware
+                |    |    |    |
+                v    v    v    v
+             soul  voice  slop  metrics
+                |    |    |    |
+                v    v    v    v
+             ~/.nio/nio.db (SQLite + WAL)
+                       |
+                       v
+                localhost:4242         ->  cloudflare tunnel  ->  your phone
+              (FastAPI + Jinja2)            (optional HTTPS)       tablet, etc.
+                  |        |
+                  v        v
+              dashboard   /chat
+              (HTMX)     (SSE stream)
 ```
 
 **5-event pipeline:**
@@ -233,17 +266,19 @@ Runtime `apply()` runs on every outbound message:
 
 ## Dashboard
 
-`localhost:4242`. Autostarted via launchd on install. Dark theme. Big numbers.
+`localhost:4242`. Autostarted via launchd on install. Dark theme. Big numbers. Accessible remotely via Cloudflare tunnel.
 
-**Panels:**
-- **Now Playing** . active soul, voice, live slop gauge, recent turns with inline violations
-- **Soul Diff** . side-by-side prompt diff + metric deltas between versions
+**Pages:**
+- **Home** . active soul, voice, live slop gauge, session/turn counts, platform status
+- **Chat** . talk to your agent from the browser, SSE streaming, slop-scored responses, session resume
+- **Soul** . active soul viewer, version history, diff
+- **Memory** . browsable memory entries by source, paginated
+- **Sessions** . full session history with turn counts and slop averages
 - **Metrics** . slop scores by version, latency time series, task distribution
-- **Team Activity** . per-member rollup, version adoption, slop leaderboard
-- **Registry** . browsable souls, voices, anti-slop rules
-- **Gateway Status** . Hermes connectivity grid
+- **Connections** . platform status grid, Hermes hook, Claude Code skill
+- **Learn** . onboarding and reference
 
-Stack: FastAPI + HTMX + Alpine + Chart.js. No npm build step.
+Stack: Python, FastAPI, Jinja2, HTMX, Alpine, Chart.js. No npm build step. Single process.
 
 ## Team mode
 
@@ -264,10 +299,13 @@ When a collaborator enters the repo directory, NIO auto-activates the team soul.
 ## CLI
 
 ```
+nio start                              # boot animation + tmux + dashboard + tunnel
+nio stop                               # kill session + tunnel (dashboard stays)
+nio status                             # what's running
+nio doctor                             # diagnostics
+
+nio setup [mode|access|platforms|memory|verify]
 nio install [--migrate-hermes]
-nio setup [mode|platforms|memory|verify]
-nio status
-nio doctor
 
 nio soul list|show|create|edit|release|diff|checkout|apply|active
 nio voice list|show|apply|diff|release
@@ -276,6 +314,7 @@ nio metrics show|export|team
 nio team init|join|sync|members|release
 nio cc start|turn|end|status|context
 nio dash [start|stop]
+nio gateway [start|discord|whatsapp]
 ```
 
 ## Why SQLite
@@ -364,10 +403,11 @@ All runtime state lives at `~/.nio/`:
   bin/nio          CLI symlink
   venv/            isolated Python environment
   nio.db           SQLite (sessions, turns, soul/voice versions, team state)
-  config.yaml      dash port, autostart, telemetry opt-out
-  active/          current soul.txt + voice.txt pointers
+  config.yaml      mode, access (local/remote + tunnel), dash port, telemetry
+  active/          current soul.txt + voice.txt + soul-prompt.md
   teams/           joined team manifests
   logs/            dash stdout/stderr
+  cache/           temporary files
 ```
 
 Separate from Hermes state. Clean uninstall.

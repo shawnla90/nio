@@ -26,7 +26,7 @@ app.add_typer(metrics_app, name="metrics", help="Performance metrics (show, expo
 app.add_typer(team_app, name="team", help="Team mode (init, join, sync, members, release)")
 app.add_typer(dash_app, name="dash", help="Web dashboard (start, stop, open)")
 app.add_typer(install_app, name="install", help="Bootstrap NIO (install hooks, seed registry, start dashboard)")
-app.add_typer(setup_app, name="setup", help="Interactive setup wizard (mode, platforms, memory, verify)")
+app.add_typer(setup_app, name="setup", help="Interactive setup wizard (mode, access, platforms, memory, verify)")
 app.add_typer(cc_app, name="cc", help="Claude Code session management (start, turn, end, status, context)")
 app.add_typer(gateway_app, name="gateway", help="Message gateway (WhatsApp/Discord via local models)")
 
@@ -72,25 +72,35 @@ def start():
     else:
         console.print("  [yellow]Dashboard not responding. Run: nio dash start[/yellow]")
 
-    # Cloudflare tunnel
+    # Cloudflare tunnel (config-driven)
+    from nio.core.tunnel import get_access_config, is_tunnel_running, start_tunnel
+    access = get_access_config()
     tunnel_url = ""
-    try:
-        # Check if tunnel already running
-        result = subprocess.run(["pgrep", "-f", "cloudflared"], capture_output=True)
-        if result.returncode == 0:
+
+    if access.get("mode") == "remote":
+        if is_tunnel_running():
             console.print("  [green]Cloudflare tunnel already running[/green]")
-            tunnel_url = "nio.shawnos.ai"
+            tunnel_url = access.get("tunnel_url", "")
+            if tunnel_url == "quick":
+                tunnel_url = "(quick tunnel - check cloudflared output)"
         else:
+            tunnel_name = access.get("tunnel_name", "")
+            tunnel_url_cfg = access.get("tunnel_url", "")
+            is_quick = tunnel_url_cfg == "quick"
+
             console.print("  [dim]Starting Cloudflare tunnel...[/dim]")
-            subprocess.Popen(
-                ["cloudflared", "tunnel", "run", "nio-chat"],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-            tunnel_url = "nio.shawnos.ai"
-            console.print(f"  [green]Tunnel started: https://{tunnel_url}[/green]")
-    except FileNotFoundError:
-        console.print("  [dim]cloudflared not installed. Local only.[/dim]")
+            try:
+                start_tunnel(tunnel_name=tunnel_name, quick=is_quick)
+                if is_quick:
+                    tunnel_url = "(quick tunnel - URL in cloudflared output)"
+                    console.print("  [green]Quick tunnel started[/green]")
+                else:
+                    tunnel_url = tunnel_url_cfg
+                    console.print(f"  [green]Tunnel started: https://{tunnel_url}[/green]")
+            except FileNotFoundError:
+                console.print("  [yellow]cloudflared not found. Run: nio setup access[/yellow]")
+    else:
+        console.print("  [dim]Access mode: local (no tunnel)[/dim]")
 
     console.print()
     panel_lines = [
@@ -98,8 +108,10 @@ def start():
         "  Dashboard:  [link=http://localhost:4242]localhost:4242[/link]",
         "  Chat:       [link=http://localhost:4242/chat]localhost:4242/chat[/link]",
     ]
-    if tunnel_url:
+    if tunnel_url and not tunnel_url.startswith("("):
         panel_lines.append(f"  Remote:     [link=https://{tunnel_url}/chat]https://{tunnel_url}/chat[/link]")
+    elif tunnel_url:
+        panel_lines.append(f"  Remote:     {tunnel_url}")
     panel_lines.append("  Session:    [green]tmux attach -t nio[/green]")
 
     console.print(Panel("\n".join(panel_lines), border_style="green"))
@@ -123,7 +135,7 @@ def stop():
     else:
         console.print("  [dim]No tmux session running[/dim]")
 
-    subprocess.run(["pkill", "-f", "cloudflared tunnel run"], capture_output=True)
+    subprocess.run(["pkill", "-f", "cloudflared"], capture_output=True)
     console.print("  [green]Tunnel stopped[/green]")
     console.print("  [dim]Dashboard stays running (managed by launchd)[/dim]")
 

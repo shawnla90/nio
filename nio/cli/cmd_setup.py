@@ -1,6 +1,6 @@
 """NIO setup wizard.
 
-Interactive 4-stage setup: mode, platforms, memory, verify.
+Interactive 5-stage setup: mode, access, platforms, memory, verify.
 Each stage re-runnable via `nio setup <stage>`.
 """
 
@@ -38,28 +38,41 @@ def setup_default(ctx: typer.Context):
 
         console.print(Panel(
             "[bold green]NIO Setup[/bold green]\n\n"
-            "This sets up your agent in 4 steps:\n"
+            "This sets up your agent in 5 steps:\n"
             "  [green]1.[/green] How you want to use NIO (all repos or one project)\n"
-            "  [green]2.[/green] Connect platforms (Discord, WhatsApp, Telegram...)\n"
-            "  [green]3.[/green] Import memory from previous sessions\n"
-            "  [green]4.[/green] Verify everything works\n",
+            "  [green]2.[/green] Choose access mode (local or remote via phone)\n"
+            "  [green]3.[/green] Connect platforms (Discord, WhatsApp, Telegram...)\n"
+            "  [green]4.[/green] Import memory from previous sessions\n"
+            "  [green]5.[/green] Verify everything works\n",
             border_style="green",
         ))
         console.print()
 
         setup_mode()
+        setup_access()
         setup_platforms()
         setup_memory()
         setup_verify()
 
-        console.print(Panel(
-            "[bold green]NIO is ready.[/bold green]\n\n"
-            "  Dashboard:  [link=http://localhost:4242]localhost:4242[/link]\n"
-            "  Status:     [green]nio status[/green]\n"
-            "  Score text: [green]nio antislop score \"your text\"[/green]\n"
-            "  Session:    [green]nio cc start[/green]\n",
-            border_style="green",
-        ))
+        # Build final panel with remote URL if configured
+        from nio.core.tunnel import get_access_config
+        access = get_access_config()
+        lines = [
+            "[bold green]NIO is ready.[/bold green]\n",
+            "  Dashboard:  [link=http://localhost:4242]localhost:4242[/link]",
+        ]
+        if access.get("mode") == "remote":
+            url = access.get("tunnel_url", "")
+            if url and url != "quick":
+                lines.append(f"  Remote:     [link=https://{url}/chat]https://{url}/chat[/link]")
+            else:
+                lines.append("  Remote:     Quick tunnel (URL shown on nio start)")
+        lines.extend([
+            "  Status:     [green]nio status[/green]",
+            "  Session:    [green]nio cc start[/green]",
+            "  Start:      [green]nio start[/green]",
+        ])
+        console.print(Panel("\n".join(lines), border_style="green"))
 
 
 @app.command("mode")
@@ -126,9 +139,130 @@ def setup_mode():
     console.print()
 
 
+@app.command("access")
+def setup_access():
+    """Stage 2: Configure local or remote access."""
+    import subprocess
+
+    from nio.core.tunnel import (
+        check_cloudflared_installed,
+        check_cloudflared_logged_in,
+        create_tunnel,
+        list_tunnels,
+        write_access_config,
+    )
+
+    console.print("\n[bold green]Step 2: How will you access NIO?[/bold green]\n")
+    console.print("  [green]local[/green]   Browser on this Mac only (localhost:4242)")
+    console.print("          No tunnel needed. Simplest setup.\n")
+    console.print("  [green]remote[/green]  Access from phone, tablet, or anywhere")
+    console.print("          Uses a Cloudflare tunnel for secure HTTPS.\n")
+
+    choice = Prompt.ask("  Access mode", choices=["local", "remote"], default="local")
+
+    if choice == "local":
+        write_access_config(mode="local")
+        console.print("\n  [green]Access mode: local[/green]")
+        console.print("  Dashboard at localhost:4242. No tunnel needed.\n")
+        return
+
+    # Remote mode: set up Cloudflare tunnel
+    cf_path = check_cloudflared_installed()
+    if not cf_path:
+        console.print("\n  [yellow]cloudflared not found.[/yellow]")
+        if Confirm.ask("  Install via Homebrew?", default=True):
+            result = subprocess.run(
+                ["brew", "install", "cloudflared"],
+                capture_output=False,
+            )
+            if result.returncode != 0:
+                console.print("  [red]Install failed. Set up manually: brew install cloudflared[/red]")
+                write_access_config(mode="local")
+                return
+            console.print("  [green]cloudflared installed.[/green]\n")
+        else:
+            console.print("  [dim]Falling back to local mode.[/dim]")
+            write_access_config(mode="local")
+            return
+
+    # Check login
+    if not check_cloudflared_logged_in():
+        console.print("\n  [yellow]Not logged in to Cloudflare.[/yellow]")
+        console.print("  This will open your browser to authenticate.\n")
+        if Confirm.ask("  Run cloudflared tunnel login?", default=True):
+            subprocess.run(["cloudflared", "tunnel", "login"])
+            if not check_cloudflared_logged_in():
+                console.print("  [red]Login failed. Try again: cloudflared tunnel login[/red]")
+                write_access_config(mode="local")
+                return
+            console.print("  [green]Logged in.[/green]\n")
+        else:
+            console.print("  [dim]Falling back to local mode.[/dim]")
+            write_access_config(mode="local")
+            return
+
+    # Tunnel selection
+    tunnels = list_tunnels()
+    tunnel_name = ""
+
+    if tunnels:
+        table = Table(show_header=True, border_style="dim")
+        table.add_column("Name", style="bold")
+        table.add_column("ID")
+        for t in tunnels:
+            table.add_row(t["name"], t["id"][:12])
+        console.print(table)
+        console.print()
+
+        use_existing = Prompt.ask(
+            "  Use existing tunnel or create new?",
+            choices=["existing", "new"], default="existing",
+        )
+
+        if use_existing == "existing":
+            default_name = tunnels[0]["name"] if tunnels else "nio-chat"
+            tunnel_name = Prompt.ask("  Tunnel name", default=default_name)
+        else:
+            tunnel_name = Prompt.ask("  New tunnel name", default="nio-chat")
+            if not create_tunnel(tunnel_name):
+                console.print(f"  [red]Failed to create tunnel '{tunnel_name}'[/red]")
+                write_access_config(mode="local")
+                return
+            console.print(f"  [green]Tunnel '{tunnel_name}' created.[/green]\n")
+    else:
+        console.print("  No existing tunnels found.\n")
+        tunnel_name = Prompt.ask("  Tunnel name", default="nio-chat")
+        if not create_tunnel(tunnel_name):
+            console.print(f"  [red]Failed to create tunnel '{tunnel_name}'[/red]")
+            write_access_config(mode="local")
+            return
+        console.print(f"  [green]Tunnel '{tunnel_name}' created.[/green]\n")
+
+    # Domain selection
+    console.print("  [green]custom[/green]  Your own domain (e.g. nio.shawnos.ai)")
+    console.print("  [green]auto[/green]    Auto-generated URL (changes on restart)\n")
+
+    domain_choice = Prompt.ask("  Domain type", choices=["custom", "auto"], default="custom")
+
+    if domain_choice == "custom":
+        tunnel_url = Prompt.ask("  Domain", default="nio.shawnos.ai")
+        console.print(f"\n  [dim]Make sure a DNS CNAME for {tunnel_url} points to your tunnel.[/dim]")
+        console.print(f"  [dim]Run: cloudflared tunnel route dns {tunnel_name} {tunnel_url}[/dim]\n")
+    else:
+        tunnel_url = "quick"
+        console.print("\n  [dim]Quick tunnel URL will be shown when you run nio start.[/dim]\n")
+
+    write_access_config(mode="remote", tunnel_name=tunnel_name, tunnel_url=tunnel_url)
+    console.print(f"  [green]Access mode: remote[/green]")
+    if tunnel_url != "quick":
+        console.print(f"  [green]Tunnel: {tunnel_name} -> https://{tunnel_url}[/green]\n")
+    else:
+        console.print(f"  [green]Tunnel: {tunnel_name} (quick mode)[/green]\n")
+
+
 @app.command("platforms")
 def setup_platforms():
-    """Stage 2: Connect messaging platforms."""
+    """Stage 3: Connect messaging platforms."""
     from nio.core.platform_probe import (
         PLATFORMS,
         check_whatsapp_bridge,
@@ -136,7 +270,7 @@ def setup_platforms():
         probe_all,
     )
 
-    console.print("\n[bold green]Step 2: Connect your agent to a platform[/bold green]\n")
+    console.print("\n[bold green]Step 3: Connect your agent to a platform[/bold green]\n")
     console.print("  Your agent can respond on Discord, Telegram, WhatsApp, Slack, or Signal.")
     console.print("  Skip this if you only use Claude Code.\n")
 
@@ -206,10 +340,10 @@ def setup_platforms():
 
 @app.command("memory")
 def setup_memory():
-    """Stage 3: Import Hermes memories into NIO."""
+    """Stage 4: Import Hermes memories into NIO."""
     from pathlib import Path
 
-    console.print("\n[bold green]Step 3: Import existing memory[/bold green]\n")
+    console.print("\n[bold green]Step 4: Import existing memory[/bold green]\n")
     console.print("  NIO can import context from your previous Hermes sessions and Claude Code handoffs.")
     console.print("  This gives your agent a head start on knowing your work.\n")
 
@@ -274,13 +408,13 @@ def setup_memory():
 
 @app.command("verify")
 def setup_verify():
-    """Stage 4: Verify everything works."""
+    """Stage 5: Verify everything works."""
     from pathlib import Path
 
     from nio.core.db import check_db
     from nio.core.platform_probe import check_hermes_installed, probe_all
 
-    console.print("\n[bold green]Step 4: Verify everything works[/bold green]\n")
+    console.print("\n[bold green]Step 5: Verify everything works[/bold green]\n")
 
     checks = []
 
@@ -317,6 +451,19 @@ def setup_verify():
         checks.append((f"Mode: {mode}", True))
     else:
         checks.append(("Mode configured", False))
+
+    # Access / tunnel
+    access_cfg = config.get("access", {})
+    if access_cfg.get("mode") == "remote":
+        from nio.core.tunnel import is_tunnel_running
+        tunnel_url = access_cfg.get("tunnel_url", "")
+        tunnel_name = access_cfg.get("tunnel_name", "")
+        label = f"Tunnel: {tunnel_name}" if tunnel_name else "Tunnel"
+        if tunnel_url and tunnel_url != "quick":
+            label += f" -> {tunnel_url}"
+        checks.append((label, is_tunnel_running()))
+    else:
+        checks.append(("Access: local", True))
 
     # Platform status
     for probe in probe_all():

@@ -121,7 +121,8 @@ async function sendMessage() {
                         streamText.textContent = fullResponse;
                         messagesEl.scrollTop = messagesEl.scrollHeight;
                     } else if (event.type === 'session_id') {
-                        sessionId = event.session_id;
+                        // Only capture the FIRST session ID - reuse it for all subsequent messages
+                        if (!sessionId) sessionId = event.session_id;
                     } else if (event.type === 'done') {
                         // Replace streaming div with final message + slop badge
                         streamDiv.remove();
@@ -160,5 +161,12 @@ async function sendMessage() {
 setInterval(() => {
     fetch('/health').catch(() => {});
 }, 15000);
+
+// Mobile: scroll input into view when keyboard opens
+if ('visualViewport' in window) {
+    window.visualViewport.addEventListener('resize', () => {
+        document.querySelector('.chat-input-bar').scrollIntoView({ block: 'end' });
+    });
+}
 </script>
 {% endblock %}
