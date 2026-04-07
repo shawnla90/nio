@@ -140,8 +140,14 @@ async function sendMessage() {
         }
 
     } catch (err) {
-        streamDiv.remove();
-        addMessage('assistant', 'Connection error: ' + err.message);
+        // Stream ended - if we have a response, show it (not an error)
+        if (fullResponse && streamDiv.parentNode) {
+            streamDiv.remove();
+            addMessage('assistant', fullResponse);
+        } else if (!fullResponse) {
+            streamDiv.remove();
+            addMessage('assistant', 'Connection error: ' + err.message);
+        }
     }
 
     sending = false;
